@@ -1,0 +1,31 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+beautifulsoup4 = "*"
+selenium = "*"
+webdriver_manager = "*"
+xlsxwriter = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
+
+[packages.'selenium']
+webdriver = "*"
+
+[packages.'webdriver_manager.chrome']
+webdriver = "*"
+
+[packages.'xlsxwriter']
+version = "*"
+
+[packages.'requests']
+version = "*"
+
+[packages.'beautifulsoup4']
+version = "*"
