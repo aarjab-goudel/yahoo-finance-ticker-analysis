@@ -1,9 +1,9 @@
+#!/usr/bin/env python3
 from bs_obj import *
 from cf_obj import *
 from is_obj import *
 from stock_obj import *
 from future_stock_obj import *
-import pandas as pd
 import xlsxwriter
 from bs4 import BeautifulSoup
 import urllib.request as ur

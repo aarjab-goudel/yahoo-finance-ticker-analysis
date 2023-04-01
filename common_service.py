@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -113,6 +114,8 @@ def getDriver():
     if not global_driver:
         options = Options()
         options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
         global_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         return global_driver
     else:

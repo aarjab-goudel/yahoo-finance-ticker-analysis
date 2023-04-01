@@ -1,4 +1,4 @@
-import pandas as pd
+#!/usr/bin/env python3
 import time
 import math
 from common_service import *

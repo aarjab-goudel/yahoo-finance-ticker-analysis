@@ -1,4 +1,4 @@
-import pandas as pd
+#!/usr/bin/env python3
 from datetime import datetime
 from common_service import *
 import requests

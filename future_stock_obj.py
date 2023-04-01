@@ -1,4 +1,4 @@
-import pandas as pd
+#!/usr/bin/env python3
 from bs4 import BeautifulSoup
 import urllib.request as ur
 import requests
