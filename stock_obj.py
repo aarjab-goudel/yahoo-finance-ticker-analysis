@@ -60,9 +60,7 @@ def readCommonStockData(ticker):
 
         financial_response = requests.get(stockObj.getYahooFinancialDataUrl(ticker), headers=getHeader())
         second_soup = BeautifulSoup(financial_response.content, "html.parser")
-        stockObj.currency = readCurrencyType(second_soup, 'All numbers in thousands', 'span')
-
-        
+        stockObj.currency = readCurrencyType(second_soup, 'All numbers in thousands', 'span')        
 
         printStockObj(stockObj)
         return stockObj

@@ -185,13 +185,27 @@ def readDataFromPageSource(soup, label, tag):
         error_row = ['0.000', '0.000', '0.000', '0.000']
         return error_row
 
+def readHeaderCurrencyType(soup):
+    try:
+        currency_div = soup.find_all('div')[0]
+        span_text = currency_div.find_all('span')[constants.CURRENCY_INDEX].text.split('.')
+        currency_text = span_text[1].strip()
+        currency = currency_text.split(' ')[2]
+        return currency
+    except Exception as e:
+        print('-------------------------------------------------')
+        print('EXCEPTION OCCURED IN READ HEADER CURRENCY TYPE!!!!')
+        print(e)
+        print('-------------------------------------------------')
+        return 'ERROR'
+
 def readCurrencyType(soup, text, tag_name):
     try:
         currency_tag_results = soup.find_all(lambda tag: tag.name == tag_name and text in tag.text)
         span_tag = currency_tag_results[1]
         span_text = span_tag.text
         if (span_text == text):
-            return 'USD'
+            return readHeaderCurrencyType(soup)
         else:
             split_text = span_text.split(".")[0]
             currency_type = split_text.split(" ")[2]
@@ -202,6 +216,9 @@ def readCurrencyType(soup, text, tag_name):
         print(e)
         print('-------------------------------------------------')
         return 'ERROR'
+
+
+
         
 
 
