@@ -133,7 +133,6 @@ def clickQuarterlyButton(url):
     try:
         driver = getDriver()
         driver.get(url)
-        WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Close']"))).click()
         WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Col1-1-Financials-Proxy"]/section/div[1]/div[2]/button'))).click()
         time.sleep(constants.SLEEP_TIME)
         soup = BeautifulSoup(driver.page_source, 'lxml')
