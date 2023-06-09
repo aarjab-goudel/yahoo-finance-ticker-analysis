@@ -127,12 +127,21 @@ def quitDriver():
     global_driver.quit()
     global_driver = None
 
+def is_xpath_valid(driver, xpath):
+    try:
+        driver.find_element_by_xpath(xpath)
+        return True
+    except Exception as e:
+        return False
 
 
 def clickQuarterlyButton(url):
     try:
         driver = getDriver()
         driver.get(url)
+        close_xpath = "//button[@aria-label='Close']"
+        if is_xpath_valid(driver, close_xpath):
+            WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Close']"))).click()
         WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Col1-1-Financials-Proxy"]/section/div[1]/div[2]/button'))).click()
         time.sleep(constants.SLEEP_TIME)
         soup = BeautifulSoup(driver.page_source, 'lxml')
