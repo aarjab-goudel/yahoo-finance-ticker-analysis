@@ -15,6 +15,7 @@ class ISObj:
         self.operatingIncome = []
         self.netIncome = []
         self.researchAndDevelopment = []
+        self.ebitda = []
         
     def getISYahooFinancialDataUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/financials?p=' + ticker
@@ -61,6 +62,8 @@ def printISObj(isObj):
     print(isObj.netIncome)
     print('Research And Development')
     print(isObj.researchAndDevelopment)
+    print('EBITDA')
+    print(isObj.ebitda)
 
 def remove_all_text_from_isObj(isObj):
     isObj.remove_string_from_num_list(isObj.revenue)
@@ -115,6 +118,9 @@ def readAnnualISDataForTicker(ticker):
     #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation'] 
     isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
 
+    isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
+
+
 
     r_and_d_soup = clickOperatingExpense(isObj.getISYahooFinancialDataUrl(ticker))
     if r_and_d_soup:
@@ -154,6 +160,8 @@ def readQuarterlyISDataForTicker(ticker):
         #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation']
         isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
 
+        isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
+
         isObj.researchAndDevelopment = create_quarterly_research_and_dev_list(isObj.dates)
         remove_all_text_from_isObj(isObj)
         isObj.remove_ttm_from_isObj()
@@ -174,5 +182,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    isObj = readQuarterlyISDataForTicker(args.ticker)
+    isObj = readAnnualISDataForTicker(args.ticker)
  
