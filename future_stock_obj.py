@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import urllib.request as ur
 import requests
 from urllib.request import Request, urlopen
+from common_service import *
 
 class FutureStockObj:
     def __init__(self, ticker):
@@ -34,25 +35,39 @@ def printFutureStockObj(futureStockObj):
 def readFutureStockData(ticker):
     futureStockObj = FutureStockObj(ticker)
     try:
-        url = futureStockObj.getFutureAnalysisUrl(ticker)
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        read_data = urlopen(req).read()
-        soup_is = BeautifulSoup(read_data, 'lxml')
-        ls= [] 
-        for element in soup_is.find_all('table'): 
-            ls.append(element) # add each element one by one to the list
-
-        earningsSpanTags = ls[0].find_all('span')
-        futureStockObj.currentYear = earningsSpanTags[7].get_text()
-        futureStockObj.nextYear = earningsSpanTags[9].get_text()
-
-        earningsTRTags = ls[0].find_all('tr')
-        futureStockObj.currentYearEPS = earningsTRTags[2].find_all('td')[3].get_text()
-        futureStockObj.nextYearEPS = earningsTRTags[2].find_all('td')[4].get_text()
-
-        revenueTable = ls[1].find_all('tr')
-        futureStockObj.currentYearRev = revenueTable[2].find_all('td')[3].get_text()
-        futureStockObj.nextYearRev = revenueTable[2].find_all('td')[4].get_text()
+        response = requests.get(futureStockObj.getFutureAnalysisUrl(ticker), headers=getHeader())
+        soup = BeautifulSoup(response.content, "html.parser")
+        if soup:
+            divs = soup.find_all("div", class_="tableContainer")
+            index = 0
+            for div in divs:
+                if index < 2:
+                    ths = div.find_all("th")
+                    for th in ths:
+                        text = th.get_text(strip=True)
+                        if 'Current Year' in text:
+                            futureStockObj.currentYear = text
+                        if 'Next Year' in text:
+                            futureStockObj.nextYear = text
+                    
+                    tds = div.find_all("td")
+                    table_index = 0
+                    for td in tds:
+                        text = td.get_text(strip=True)
+                        if table_index == 8:
+                            if index == 0:
+                                futureStockObj.currentYearEPS = text
+                            if index == 1:
+                                futureStockObj.currentYearRev = text
+                        if table_index == 9:
+                            if index == 0:
+                                futureStockObj.nextYearEPS = text
+                            if index == 1:
+                                futureStockObj.nextYearRev = text
+                        table_index = table_index + 1
+                index = index + 1
+        
+        printFutureStockObj(futureStockObj)
     except Exception as e:
         print(e)
         futureStockObj.currentYear = '0.000'
@@ -64,6 +79,17 @@ def readFutureStockData(ticker):
     
 
     return futureStockObj
+
+if __name__ == "__main__":
+    import argparse
+    
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Run Balance Sheet analysis for a given ticker.")
+    parser.add_argument("-t", "--ticker", required=True, help="Ticker symbol, e.g. AAPL")
+    args = parser.parse_args()
+    
+    # Use the ticker passed from the command line to read the annual BS data
+    bsObj = readFutureStockData(args.ticker)
         
     
 

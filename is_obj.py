@@ -98,27 +98,27 @@ def readAnnualISDataForTicker(ticker):
     soup = BeautifulSoup(response.content, "html.parser")
 
     #isObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    isObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+    isObj.dates = readDataFromPageSource(soup, 'Breakdown')
 
     #isObj.revenue = getRowValuesByText(soup, 'Total Revenue', 'span')['Total Revenue']
-    isObj.revenue = readDataFromPageSource(soup, 'Total Revenue', 'span')
+    isObj.revenue = readDataFromPageSource(soup, 'Total Revenue')
 
     #isObj.costOfRevenue = getRowValuesByText(soup, 'Cost of Revenue', 'span')['Cost of Revenue']
-    isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue', 'span')
+    isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue')
 
     #isObj.grossProfit = getRowValuesByText(soup, 'Gross Profit', 'span')['Gross Profit']
-    isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit', 'span')
+    isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit')
 
     #isObj.operatingIncome = getRowValuesByText(soup, 'Operating Income', 'span')['Operating Income']
-    isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income', 'span')
+    isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income')
 
     #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation'] 
-    isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation', 'span')
+    isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
 
 
     r_and_d_soup = clickOperatingExpense(isObj.getISYahooFinancialDataUrl(ticker))
     if r_and_d_soup:
-        isObj.researchAndDevelopment = readDataFromPageSource(r_and_d_soup, 'Research & Development', 'span')
+        isObj.researchAndDevelopment = readDataFromPageSource(r_and_d_soup, 'Research & Development')
     else:
         isObj.researchAndDevelopment = ['0.000', '0.000', '0.000', '0.000']
  
@@ -127,7 +127,6 @@ def readAnnualISDataForTicker(ticker):
     isObj.remove_ttm_from_isObj()
     cleanISObj(isObj)
     isObj.dates = handleEmptyDateList(isObj.dates)
-    quitDriver()
     printISObj(isObj)
     return isObj
 
@@ -138,31 +137,42 @@ def readQuarterlyISDataForTicker(ticker):
 
     if soup:
         #isObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        isObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+        isObj.dates = readDataFromPageSource(soup, 'Breakdown')
 
         #isObj.revenue = getRowValuesByText(soup, 'Total Revenue', 'span')['Total Revenue']
-        isObj.revenue = readDataFromPageSource(soup, 'Total Revenue', 'span')
+        isObj.revenue = readDataFromPageSource(soup, 'Total Revenue')
 
         #isObj.costOfRevenue = getRowValuesByText(soup, 'Cost of Revenue', 'span')['Cost of Revenue']
-        isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue', 'span')
+        isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue')
 
         #isObj.grossProfit = getRowValuesByText(soup, 'Gross Profit', 'span')['Gross Profit']
-        isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit', 'span')
+        isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit')
 
         #isObj.operatingIncome = getRowValuesByText(soup, 'Operating Income', 'span')['Operating Income']
-        isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income', 'span')
+        isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income')
 
         #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation']
-        isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation', 'span')
+        isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
 
         isObj.researchAndDevelopment = create_quarterly_research_and_dev_list(isObj.dates)
         remove_all_text_from_isObj(isObj)
         isObj.remove_ttm_from_isObj()
         cleanISObj(isObj)
         isObj.dates = handleEmptyDateList(isObj.dates)
-        quitDriver()
         printISObj(isObj)
         return isObj
     else:
         return createErrorISObj(ticker)
+
+
+if __name__ == "__main__":
+    import argparse
+    
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Run Balance Sheet analysis for a given ticker.")
+    parser.add_argument("-t", "--ticker", required=True, help="Ticker symbol, e.g. AAPL")
+    args = parser.parse_args()
+    
+    # Use the ticker passed from the command line to read the annual BS data
+    isObj = readQuarterlyISDataForTicker(args.ticker)
  

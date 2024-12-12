@@ -9,6 +9,8 @@ beautifulsoup4 = "*"
 selenium = "*"
 webdriver-manager = "*"
 xlsxwriter = "*"
+playwright = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.9"

@@ -65,27 +65,29 @@ def readAnnualBSDataForTicker(ticker):
     print('Balance Sheet Response Code for ' + ticker + ' is ' + str(response.status_code))
     soup = BeautifulSoup(response.content, "html.parser")
 
+
+
     #bsObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    bsObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+    bsObj.dates = readDataFromPageSource(soup, 'Breakdown')
     bsObj.dates = handleEmptyDateList(bsObj.dates)
 
     #bsObj.totalAssets = getRowValuesByText(soup, 'Total Assets', 'span')['Total Assets']
-    bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets', 'span')
+    bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets')
 
     #bsObj.totalLiabilities = getRowValuesByText(soup, 'Total Liabilities Net Minority Interest', 'span')['Total Liabilities Net Minority Interest']
-    bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest', 'span')
+    bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest')
 
     #bsObj.totalEquity = getRowValuesByText(soup, 'Total Equity Gross Minority Interest', 'span')['Total Equity Gross Minority Interest']
-    bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest', 'span')
+    bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest')
 
     response = requests.get(bsObj.getStatisticsDataUrl(ticker), headers=getHeader())
     print('Balance Sheet Statistics Response Code for ' + ticker + ' is ' + str(response.status_code))
     soup = BeautifulSoup(response.content, "html.parser")
 
     try:
-        bsObj.totalCash = getRowValueFromStatisticsRow(soup, 'Total Cash', 'span')['Total Cash']
-        bsObj.totalDebt = getRowValueFromStatisticsRow(soup, 'Total Debt', 'span')['Total Debt']
-        bsObj.currentRatio = getRowValueFromStatisticsRow(soup, 'Current Ratio', 'span')['Current Ratio']
+        bsObj.totalCash = getRowValueFromStatisticsRow(soup, 'Total Cash')['Total Cash']
+        bsObj.totalDebt = getRowValueFromStatisticsRow(soup, 'Total Debt')['Total Debt']
+        bsObj.currentRatio = getRowValueFromStatisticsRow(soup, 'Current Ratio')['Current Ratio']
     except Exception as e:
         print(e)
         bsObj.totalCash = '0.000'
@@ -105,23 +107,34 @@ def readQuarterlyBSDataForTicker(ticker):
 
     if soup:
         #bsObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        bsObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+        bsObj.dates = readDataFromPageSource(soup, 'Breakdown')
 
         #bsObj.totalAssets = getRowValuesByText(soup, 'Total Assets', 'span')['Total Assets']
-        bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets', 'span')
+        bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets')
 
         #bsObj.totalLiabilities = getRowValuesByText(soup, 'Total Liabilities Net Minority Interest', 'span')['Total Liabilities Net Minority Interest']
-        bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest', 'span')
+        bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest')
 
        #bsObj.totalEquity = getRowValuesByText(soup, 'Total Equity Gross Minority Interest', 'span')['Total Equity Gross Minority Interest']
-        bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest', 'span')
+        bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest')
 
-        quitDriver()
+        #quitDriver()
         cleanBSObj(bsObj)
         bsObj.dates = handleEmptyDateList(bsObj.dates)
         printBSObj(bsObj)
         return bsObj
     else:
         return createErrorBSObj(ticker)
+
+if __name__ == "__main__":
+    import argparse
+    
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Run Balance Sheet analysis for a given ticker.")
+    parser.add_argument("-t", "--ticker", required=True, help="Ticker symbol, e.g. AAPL")
+    args = parser.parse_args()
+    
+    # Use the ticker passed from the command line to read the annual BS data
+    bsObj = readQuarterlyBSDataForTicker(args.ticker)
 
 

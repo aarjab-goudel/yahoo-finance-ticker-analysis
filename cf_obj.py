@@ -70,22 +70,22 @@ def readAnnualCFDataForTicker(ticker):
 
 
     #cfObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    cfObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+    cfObj.dates = readDataFromPageSource(soup, 'Breakdown')
 
     #cfObj.netCashByOperatingActivities = getRowValuesByText(soup, 'Operating Cash Flow', 'span')['Operating Cash Flow']
-    cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow', 'span')
+    cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow')
 
     #cfObj.netCashForInvestingActivities = getRowValuesByText(soup, 'Investing Cash Flow', 'span')['Investing Cash Flow']
-    cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow', 'span')
+    cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow')
 
     #cfObj.netCashForFinancingActivities = getRowValuesByText(soup, 'Financing Cash Flow', 'span')['Financing Cash Flow']
-    cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow', 'span')
+    cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow')
 
     #cfObj.capitalExpenditures = getRowValuesByText(soup, 'Capital Expenditure', 'span')['Capital Expenditure']
-    cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure', 'span')
+    cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure')
 
     #cfObj.freeCashFlow = getRowValuesByText(soup, 'Free Cash Flow', 'span')['Free Cash Flow']
-    cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow', 'span')
+    cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow')
 
     cfObj.remove_ttm_from_cfObj()
     cleanCFObj(cfObj)
@@ -101,31 +101,42 @@ def readQuarterlyCFDataForTicker(ticker):
 
     if soup:
        #cfObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        cfObj.dates = readDataFromPageSource(soup, 'Breakdown', 'span')
+        cfObj.dates = readDataFromPageSource(soup, 'Breakdown')
 
         #cfObj.netCashByOperatingActivities = getRowValuesByText(soup, 'Operating Cash Flow', 'span')['Operating Cash Flow']
-        cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow', 'span')
+        cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow')
 
         #cfObj.netCashForInvestingActivities = getRowValuesByText(soup, 'Investing Cash Flow', 'span')['Investing Cash Flow']
-        cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow', 'span')
+        cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow')
 
         #cfObj.netCashForFinancingActivities = getRowValuesByText(soup, 'Financing Cash Flow', 'span')['Financing Cash Flow']
-        cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow', 'span')
+        cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow')
 
         #cfObj.capitalExpenditures = getRowValuesByText(soup, 'Capital Expenditure', 'span')['Capital Expenditure']
-        cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure', 'span')
+        cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure')
 
         #cfObj.freeCashFlow = getRowValuesByText(soup, 'Free Cash Flow', 'span')['Free Cash Flow']
-        cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow', 'span')
+        cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow')
 
         cfObj.remove_ttm_from_cfObj()
         cleanCFObj(cfObj)
         cfObj.dates = handleEmptyDateList(cfObj.dates)
         printCFObj(cfObj)
-        quitDriver()
         return cfObj
     else:
         return createErrorCFObj(ticker)
+
+
+if __name__ == "__main__":
+    import argparse
+    
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Run Balance Sheet analysis for a given ticker.")
+    parser.add_argument("-t", "--ticker", required=True, help="Ticker symbol, e.g. AAPL")
+    args = parser.parse_args()
+    
+    # Use the ticker passed from the command line to read the annual BS data
+    cfObj = readQuarterlyCFDataForTicker(args.ticker)
 
 
 

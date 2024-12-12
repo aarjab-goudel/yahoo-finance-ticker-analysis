@@ -7,11 +7,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from playwright.sync_api import sync_playwright
 import time
 import requests
 import constants
-
-global_driver = None
 
 def getHeader():
     # Set up the request headers that we're going to use, to simulate
@@ -43,57 +42,52 @@ def getProfileTexyByTicker(soup, text, tag_name):
 
 
 
-def getStatisticsRowByText(soup, text, tag_name):
-    text_tag_results = soup.find_all(lambda tag: tag.name == tag_name and text in tag.text)
-    if text_tag_results:
-        for text_tag in text_tag_results:
-            if text_tag.text == text:
-                row_tag = text_tag.parent.parent
-                return row_tag
+def getStatisticsRowByText(soup, text):
+    # HERE IS WHERE WE ARE SCRAPING THE DATA FROM THE WEB PAGE
+    tds = soup.find_all("td", class_=lambda c: c and ("label" in c or "value" in c))
+    if tds:
+        for index, td in enumerate(tds):
+            if text in str(td):
+                value = tds[index+1]
+                return value
     else:
-        print('Error in getting  ' + text + ' from this tag: ' + tag_name)
+        print('Error in getting  ' + text)
         return None
 
-def getProfileValueFromRowByText(soup, text, tag_name):
-    profile_row = getStatisticsRowByText(soup, text, tag_name)
+def getProfileValueFromRowByText(soup, text):
+    profile_row = getStatisticsRowByText(soup, text)
     mini_soup = BeautifulSoup(str(profile_row), "html.parser")
     profile_td = mini_soup.find_all('td')[1]
     return profile_td.text
 
-def getRowValueFromStatisticsRow(soup, text, tag_name):
-    row_tag = getStatisticsRowByText(soup, text, tag_name)
+def getRowValueFromStatisticsRow(soup, text):
+    row_tag = getStatisticsRowByText(soup, text)
     if row_tag:
-        stat_map = {text: ''}
-        mini_soup = BeautifulSoup(str(row_tag), "html.parser")
-        td_tags = mini_soup.find_all('td')
-        for td_tag in td_tags:
-            if text not in td_tag.text:
-                stat_map[text] = td_tag.text
+        stat_map = {text: row_tag.get_text(strip=True)}
         return stat_map
     else:
         return None
 
 
-def getRowByText(soup, text, tag_name):
-    text_tag_results = soup.find_all(lambda tag: tag.name == tag_name and text in tag.text)
-    if text_tag_results:  
-        for text_tag in text_tag_results:
-            if text_tag.text == text:
-                row_tag = text_tag.parent.parent.parent
-                return row_tag
+def getRowByText(soup, text):
+    # HERE IS WHERE WE ARE SCRAPING THE DATA FROM THE WEB PAGE
+    divs = soup.find_all("div", class_="row")
+    if divs:  
+        for item in divs:
+            div = item.get_text(strip=False)
+            if text in div:
+                return div
     else:
-        print('Error in getting ' + text + ' from this tag: ' + tag_name)
+        print('Error in getting ' + text)
         return None
+    return None
 
-def getRowValuesByText(soup, text, tag_name):
-    row_tag = getRowByText(soup, text, tag_name)
+def getRowValuesByText(soup, text):
+    row_tag = getRowByText(soup, text)
     if row_tag:
-        row_map = {text: []}
-        mini_soup = BeautifulSoup(str(row_tag), "html.parser")
-        span_tags = mini_soup.find_all('span')
-        for span_tag in span_tags:
-            if span_tag.text != text:
-                row_map[text].append(span_tag.text)
+        val_arr = row_tag.strip().split()
+        row_arr = val_arr[-4:]
+        row_map = {text: row_arr}
         return row_map
     else:
         return None
@@ -109,24 +103,6 @@ def is_valid_number(num):
     except ValueError:
         return False
 
-def getDriver():
-    global global_driver
-    if not global_driver:
-        options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        global_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        return global_driver
-    else:
-        return global_driver
-
-def quitDriver():
-    global global_driver
-    global_driver.close()
-    global_driver.quit()
-    global_driver = None
-
 def is_xpath_valid(driver, xpath):
     try:
         driver.find_element_by_xpath(xpath)
@@ -137,15 +113,22 @@ def is_xpath_valid(driver, xpath):
 
 def clickQuarterlyButton(url):
     try:
-        driver = getDriver()
-        driver.get(url)
-        close_xpath = "//button[@aria-label='Close']"
-        if is_xpath_valid(driver, close_xpath):
-            WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Close']"))).click()
-        WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Col1-1-Financials-Proxy"]/section/div[1]/div[2]/button'))).click()
-        time.sleep(constants.SLEEP_TIME)
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-        return soup 
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url)
+
+            # Click the Quarterly button
+            page.wait_for_selector("text=Quarterly")
+            page.click("text=Quarterly")
+
+            # Wait for the page to update
+            time.sleep(5)
+
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
+            browser.close()
+            return soup
     except Exception as e:
         print('-------------------------------------------------')
         print('EXCEPTION OCCURED IN CLICK QUARTERLY BUTTON !!!!')
@@ -154,15 +137,27 @@ def clickQuarterlyButton(url):
         return None
 
 
+
 def clickOperatingExpense(url):
     try:
-        driver = getDriver()
-        driver.get(url)
-        WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Close']"))).click()
-        WebDriverWait(driver, constants.SLEEP_TIME).until(EC.element_to_be_clickable((By.XPATH, "//div[@title='Operating Expense']/button[@aria-label='Operating Expense']"))).click()
-        time.sleep(constants.SLEEP_TIME)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        return soup
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url)
+
+            # Wait for the button to appear
+            page.wait_for_selector("button[aria-label='Operating Expense']")
+
+            # Click the Operating Expense button
+            page.click("button[aria-label='Operating Expense']")
+
+            # Give some time for the page to update after clicking
+            time.sleep(5)
+
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
+            browser.close()
+            return soup
     except Exception as e:
         print('-------------------------------------------------')
         print('EXCEPTION OCCURED IN CLICK OPERATING EXPENSE!!!!')
@@ -185,9 +180,9 @@ def handleEmptyDateList(dates):
         return dates
 
 
-def readDataFromPageSource(soup, label, tag):
+def readDataFromPageSource(soup, label):
     try:
-        row = getRowValuesByText(soup, label, tag)[label]
+        row = getRowValuesByText(soup, label)[label]
         return row
     except:
         error_row = ['0.000', '0.000', '0.000', '0.000']
