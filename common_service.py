@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 import time
 import requests
 import constants
+import re
 
 def getHeader():
     # Set up the request headers that we're going to use, to simulate
@@ -53,6 +54,67 @@ def getStatisticsRowByText(soup, text):
     else:
         print('Error in getting  ' + text)
         return None
+
+def getStatisticsDatesByText(soup, text_label):
+    """
+    Find the <th> that has the given text (e.g., 'Current'),
+    then extract all the <th> values from the parent <tr>.
+    """
+    # 1. Find the <th> that contains the text_label
+    label_th = soup.find("th", text=re.compile(text_label))
+    if not label_th:
+        print(f'Error: Could not find header with text "{text_label}"')
+        return None
+    
+    # 2. Get the parent <tr> of that <th>
+    row = label_th.find_parent("tr")
+    if not row:
+        print(f'Error: Could not find row for header "{text_label}"')
+        return None
+    
+    # 3. Grab all <th> in that row
+    ths = row.find_all("th")
+    
+    # 4. Return the text from each <th>, stripped of extra whitespace
+    return [th.get_text(strip=True) for th in ths]
+
+
+def getStatisticsTableByText(soup, text_label):
+
+    # 1. Find the <td> that contains the text label
+    label_td = soup.find("td", text=re.compile(text_label))
+    if not label_td:
+        print(f'Error: Could not find label "{text_label}"')
+        return None
+
+    # 2. Get the parent <tr> of that <td>
+    row = label_td.find_parent("tr")
+    if not row:
+        print(f'Error: Could not find row for label "{text_label}"')
+        return None
+
+    # 3. Grab all <td> in that row (you can refine the class_ if needed)
+    tds = row.find_all("td")
+
+    # 4. Extract text from each <td> and strip whitespace
+    #    The first td is the label; the subsequent ones are the values.
+    return [td.get_text(strip=True) for td in tds]
+
+def getPEGRatios(soup):
+
+    label_td = soup.find("td", string="PEG Ratio (5yr expected)")
+    if not label_td:
+        print(f'Error: Could not find label "{text_label}"')
+        return None
+
+    row = label_td.find_parent("tr")
+    if not row:
+        print(f'Error: Could not find row for label "{text_label}"')
+        return None
+
+    tds = row.find_all("td")
+    return [td.get_text(strip=True) for td in tds]
+
 
 def getProfileValueFromRowByText(soup, text):
     profile_row = getStatisticsRowByText(soup, text)
@@ -116,18 +178,19 @@ def clickQuarterlyButton(url):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url)
+            page.goto(url)  
 
             # Click the Quarterly button
             page.wait_for_selector("text=Quarterly")
             page.click("text=Quarterly")
 
             # Wait for the page to update
-            time.sleep(5)
+            time.sleep(30)
 
             html = page.content()
             soup = BeautifulSoup(html, "lxml")
             browser.close()
+            print("Clicked on Quarterly Button!!!!!")
             return soup
     except Exception as e:
         print('-------------------------------------------------')
@@ -219,6 +282,77 @@ def readCurrencyType(soup, text, tag_name):
         print(e)
         print('-------------------------------------------------')
         return 'ERROR'
+
+def parse_numeric_value(value):
+    # Remove commas and convert to float
+
+    if (',' in value):
+        return float(value.replace(',', ''))
+    if '0.000' in value:
+        return 0
+    if 'ERROR' in value:
+        return 'ERROR'
+    return float(value)
+
+def calculateEBITDAInterst(ebitda, interest):
+    numeric_ebitda = parse_numeric_value(ebitda)
+    numeric_interest = parse_numeric_value(interest)
+
+    if numeric_interest == 0:
+        return 'ERROR'
+    
+    ebitda_interest_rate = numeric_ebitda / numeric_interest
+    return f"{ebitda_interest_rate:.2f}"
+
+
+
+def percent_change(beginning_str, end_str):
+    # Convert input strings to floats
+    beginning = parse_numeric_value(beginning_str)
+    end = parse_numeric_value(end_str)
+
+    if beginning == 'ERROR' or end == 'ERROR':
+        return 'ERROR'
+
+    # Handle the case where beginning is 0 (to avoid division by zero)
+    if beginning == 0:
+        if end == 0:
+            # No change if both are zero
+            return "+0.0%"
+        else:
+            # Arbitrary decision: if beginning=0 and end != 0, treat as +/-∞
+            return "+∞%" if end > 0 else "-∞%"
+
+    # Calculate percent change
+    ratio = (end - beginning) / abs(beginning)  # e.g. 0.056 -> 5.6%
+    ratio_percent = ratio * 100
+
+    # Build the output string, including sign
+    sign_str = "+" if ratio_percent >= 0 else ""  # negative already includes '-'
+    return f"{sign_str}{ratio_percent:.2f}%"
+
+def removeDecimalFromStr(value_str):
+    """
+    Removes any decimal portion from the given string.
+    If there's a period in the string, everything from
+    the period onward is removed.
+
+    Examples:
+        "351,002,000.00" -> "351,002,000"
+        "351,002,000.35" -> "351,002,000"
+        "351,002,000"    -> "351,002,000"
+    """
+    if '.' in value_str:
+        # Split at the first '.' and take everything before it
+        value_str = value_str.split('.', 1)[0]
+    return value_str
+
+def stripAlphabetFromNum(val):
+    allowed_chars = set("0123456789-.,")
+    return ''.join(ch for ch in val if ch in allowed_chars)
+
+
+
 
 
 

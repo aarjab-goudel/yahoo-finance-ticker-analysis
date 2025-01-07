@@ -21,6 +21,9 @@ class StockObj:
     def getYahooFinancialDataUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/financials?p=' + ticker
 
+    def __repr__(self):
+        return f"StockObj(ticker={self.ticker}, industry={self.industry}, sector={self.sector}, peRatio={self.peRatio}, dividend={self.dividend}, fullName={self.fullName}, currency={self.currency})"
+
     
 
 

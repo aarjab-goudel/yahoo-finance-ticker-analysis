@@ -18,6 +18,9 @@ class CFObj:
     def getCFYahooFinancialDataUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/cash-flow?p=' + ticker
 
+    def __repr__(self):
+        return f"CFObj(ticker={self.ticker}, dates={self.dates}, freeCashFlow={self.freeCashFlow}, netCashByOps={self.netCashByOperatingActivities}, netCashForInvest={self.netCashForInvestingActivities}, netCashForFinanceing={self.netCashForFinancingActivities}, capitalExpenditure={self.capitalExpenditures})"
+
     def remove_ttm_from_cfObj(self):
         if self.dates:
             if self.dates[0].lower() == 'ttm':

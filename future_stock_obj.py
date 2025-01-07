@@ -18,6 +18,9 @@ class FutureStockObj:
     def getFutureAnalysisUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/analysis?p=' + ticker
 
+    def __repr__(self):
+        return f"FutureStockObj(ticker={self.ticker}, currentYear={self.currentYear}, nextYear={self.nextYear}, currentYearEPS={self.currentYearEPS}, nextYearEPS={self.nextYearEPS}, currentYearRev={self.currentYearRev}, nextYearRev={self.nextYearRev})"
+
 def printFutureStockObj(futureStockObj):
     print('Current Year')
     print(futureStockObj.currentYear)

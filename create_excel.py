@@ -12,6 +12,8 @@ from urllib.request import Request, urlopen
 from datetime import datetime
 import argparse
 import time
+from pathlib import Path
+import os
 print('Starting now -- please wait until finished')
 parser = argparse.ArgumentParser(description='Enter tickers seperated by commas')
 parser.add_argument('-t', '--ticker', dest='tickers', action='append', default=[], required=True, help='Enter tickers separated by commas')
@@ -29,6 +31,10 @@ futureStockObjs = []
 quarterlyBSObjs = []
 quarterlyISObjs = []
 quarterlyCFObjs = []
+
+annual_ticker_map = None
+quarterly_ticker_map = None
+
 
 
 def findObjByTicker(objs, ticker):
@@ -385,7 +391,267 @@ def createAnnualExcelWorkbook():
 
     wb.close()
 
+def setUpQuarterlyTickerMap():
+    ticker_map = {}
+    for ticker in tickers:
+        ticker_map[ticker] = []
+        for quarterlyBSObj in quarterlyBSObjs:
+            bsObjTicker = quarterlyBSObj.ticker
+            if bsObjTicker == ticker:
+                ticker_map[ticker].append(quarterlyBSObj)
+        
+        for quarterlyISObj in quarterlyISObjs:
+            isObjTicker = quarterlyISObj.ticker
+            if isObjTicker == ticker:
+                ticker_map[ticker].append(quarterlyISObj)
+
+        for quarterlyCFObj in quarterlyCFObjs:
+            cfObjTicker = quarterlyCFObj.ticker
+            if cfObjTicker == ticker:
+                ticker_map[ticker].append(quarterlyCFObj)
+
+    return ticker_map
+
+def setUpAnnualTickerMap():  
+    ticker_map = {}
+    for ticker in tickers:
+        ticker_map[ticker] = []
+        for annualBSObj in annualBSObjs:
+            bsObjTicker = annualBSObj.ticker
+            if annualBSObj.ticker == ticker:
+                ticker_map[ticker].append(annualBSObj)
+
+        for annualISObj in annualISObjs:
+            isObjTicker = annualISObj.ticker
+            if annualISObj.ticker == ticker:
+                ticker_map[ticker].append(annualISObj)
+
+        for annualCFObj in annualCFObjs:
+            cfObjTicker = annualCFObj.ticker
+            if annualCFObj.ticker == ticker:
+                ticker_map[ticker].append(annualCFObj)
+
+        for stockObj in stockObjs:
+            stockObjTicker = stockObj.ticker
+            if stockObj.ticker == ticker:
+                ticker_map[ticker].append(stockObj)
+
+        for futureStockObj in futureStockObjs:
+            futureStockTicker = futureStockObj.ticker
+            if futureStockObj.ticker == ticker:
+                ticker_map[ticker].append(futureStockObj)
+
+    return ticker_map
+
+def createQuarterlyStockTxtFile(ticker):
+    p = Path(ticker)
+    txt_path = p / f"{ticker}.txt"
+    quarterlyBSObj = quarterly_ticker_map[ticker][0]
+    quarterlyISObj = quarterly_ticker_map[ticker][1]
+    quarterlyCFObj = quarterly_ticker_map[ticker][2]
+    stockObj = annual_ticker_map[ticker][3]
+    futureStockObj = annual_ticker_map[ticker][4]
+    annualBSObj = annual_ticker_map[ticker][0]
+    with open(txt_path, "w") as f:
+        f.write(f"===================================================== {ticker} (Currency in {stockObj.currency}) - Balance Sheet =====================================================  ")
+        f.write("\n"f"                                         {quarterlyBSObj.dates[3]}             {quarterlyBSObj.dates[2]}             {quarterlyBSObj.dates[1]}             {quarterlyBSObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Assets                             {removeDecimalFromStr(quarterlyBSObj.totalAssets[3])}            {removeDecimalFromStr(quarterlyBSObj.totalAssets[2])}            {removeDecimalFromStr(quarterlyBSObj.totalAssets[1])}            {removeDecimalFromStr(quarterlyBSObj.totalAssets[0])}")
+        f.write("\n"f"Total Assets Growth                                {percent_change(quarterlyBSObj.totalAssets[3], quarterlyBSObj.totalAssets[2])}                 {percent_change(quarterlyBSObj.totalAssets[2], quarterlyBSObj.totalAssets[1])}                 {percent_change(quarterlyBSObj.totalAssets[1], quarterlyBSObj.totalAssets[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Liabilities                        {removeDecimalFromStr(quarterlyBSObj.totalLiabilities[3])}            {removeDecimalFromStr(quarterlyBSObj.totalLiabilities[2])}            {removeDecimalFromStr(quarterlyBSObj.totalLiabilities[1])}            {removeDecimalFromStr(quarterlyBSObj.totalLiabilities[0])}")
+        f.write("\n"f"Total Liabilities Growth                           {percent_change(quarterlyBSObj.totalLiabilities[3], quarterlyBSObj.totalLiabilities[2])}                 {percent_change(quarterlyBSObj.totalLiabilities[2], quarterlyBSObj.totalLiabilities[1])}                 {percent_change(quarterlyBSObj.totalLiabilities[1], quarterlyBSObj.totalLiabilities[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Shareholders Equity                {removeDecimalFromStr(quarterlyBSObj.totalEquity[3])}             {removeDecimalFromStr(quarterlyBSObj.totalEquity[2])}             {removeDecimalFromStr(quarterlyBSObj.totalEquity[1])}             {removeDecimalFromStr(quarterlyBSObj.totalEquity[0])}")
+        f.write("\n"f"Total Shareholders Equity Growth                   {percent_change(quarterlyBSObj.totalEquity[3], quarterlyBSObj.totalEquity[2])}                {percent_change(quarterlyBSObj.totalEquity[2], quarterlyBSObj.totalEquity[1])}                {percent_change(quarterlyBSObj.totalEquity[1], quarterlyBSObj.totalEquity[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Cash (Most Recent Quarter)         ${annualBSObj.totalCash}")
+        f.write("\n"f"Total Debt (Most Recent Quarter)         ${annualBSObj.totalDebt}")
+        f.write("\n"f"Current Ratio (Most Recent Quarter)      {annualBSObj.currentRatio}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Balance Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Income Sheet =====================================================  ")
+        f.write("\n"f"                                         {quarterlyISObj.dates[3]}             {quarterlyISObj.dates[2]}             {quarterlyISObj.dates[1]}             {quarterlyISObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Revenue                                  {removeDecimalFromStr(quarterlyISObj.revenue[3])}            {removeDecimalFromStr(quarterlyISObj.revenue[2])}            {removeDecimalFromStr(quarterlyISObj.revenue[1])}            {removeDecimalFromStr(quarterlyISObj.revenue[0])}")
+        f.write("\n"f"Revenue Growth                                     {percent_change(quarterlyISObj.revenue[3], quarterlyISObj.revenue[2])}                 {percent_change(quarterlyISObj.revenue[2], quarterlyISObj.revenue[1])}                 {percent_change(quarterlyISObj.revenue[1], quarterlyISObj.revenue[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Gross Profit                             {removeDecimalFromStr(quarterlyISObj.grossProfit[3])}            {removeDecimalFromStr(quarterlyISObj.grossProfit[2])}            {removeDecimalFromStr(quarterlyISObj.grossProfit[1])}            {removeDecimalFromStr(quarterlyISObj.grossProfit[0])}")
+        f.write("\n"f"Gross Profit Growth                                {percent_change(quarterlyISObj.grossProfit[3], quarterlyISObj.grossProfit[2])}                {percent_change(quarterlyISObj.grossProfit[2], quarterlyISObj.grossProfit[1])}                 {percent_change(quarterlyISObj.grossProfit[1], quarterlyISObj.grossProfit[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Net Income                               {removeDecimalFromStr(quarterlyISObj.netIncome[3])}             {removeDecimalFromStr(quarterlyISObj.netIncome[2])}             {removeDecimalFromStr(quarterlyISObj.netIncome[1])}             {removeDecimalFromStr(quarterlyISObj.netIncome[0])}")
+        f.write("\n"f"Net Income Growth                                  {percent_change(quarterlyISObj.netIncome[3], quarterlyISObj.netIncome[2])}                 {percent_change(quarterlyISObj.netIncome[2], quarterlyISObj.netIncome[1])}                 {percent_change(quarterlyISObj.netIncome[1], quarterlyISObj.netIncome[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Research And Development                 {removeDecimalFromStr(quarterlyISObj.researchAndDevelopment[3])}             {removeDecimalFromStr(quarterlyISObj.researchAndDevelopment[2])}             {removeDecimalFromStr(quarterlyISObj.researchAndDevelopment[1])}             {quarterlyISObj.researchAndDevelopment[0]}")
+        f.write("\n"f"Research And Development Growth                    {percent_change(quarterlyISObj.researchAndDevelopment[3], quarterlyISObj.researchAndDevelopment[2])}                {percent_change(quarterlyISObj.researchAndDevelopment[2], quarterlyISObj.researchAndDevelopment[1])}                {percent_change(quarterlyISObj.researchAndDevelopment[1], quarterlyISObj.researchAndDevelopment[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EBITDA                                  {removeDecimalFromStr(quarterlyISObj.ebitda[3])}            {removeDecimalFromStr(quarterlyISObj.ebitda[2])}            {removeDecimalFromStr(quarterlyISObj.ebitda[1])}            {removeDecimalFromStr(quarterlyISObj.ebitda[0])}")
+        f.write("\n"f"EBITDA Growth                                     {percent_change(quarterlyISObj.ebitda[3], quarterlyISObj.ebitda[2])}                 {percent_change(quarterlyISObj.ebitda[2], quarterlyISObj.ebitda[1])}                 {percent_change(quarterlyISObj.ebitda[1], quarterlyISObj.ebitda[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Income Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Cash Flow Sheet =====================================================  ")
+        f.write("\n"f"                                         {quarterlyCFObj.dates[3]}             {quarterlyCFObj.dates[2]}             {quarterlyCFObj.dates[1]}             {quarterlyCFObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Free Cash Flow                           {removeDecimalFromStr(quarterlyCFObj.freeCashFlow[3])}             {removeDecimalFromStr(quarterlyCFObj.freeCashFlow[2])}            {removeDecimalFromStr(quarterlyCFObj.freeCashFlow[1])}             {removeDecimalFromStr(quarterlyCFObj.freeCashFlow[0])}")
+        f.write("\n"f"Free Cash Flow Growth                              {percent_change(quarterlyCFObj.freeCashFlow[3], quarterlyCFObj.freeCashFlow[2])}                {percent_change(quarterlyCFObj.freeCashFlow[2], quarterlyCFObj.freeCashFlow[1])}                {percent_change(quarterlyCFObj.freeCashFlow[1], quarterlyCFObj.freeCashFlow[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Net Cash For Investing                   {removeDecimalFromStr(quarterlyCFObj.netCashForInvestingActivities[3])}            {removeDecimalFromStr(quarterlyCFObj.netCashForInvestingActivities[2])}            {removeDecimalFromStr(quarterlyCFObj.netCashForInvestingActivities[1])}              {removeDecimalFromStr(quarterlyCFObj.netCashForInvestingActivities[0])}")
+        f.write("\n"f"Net Cash For Financing                   {removeDecimalFromStr(quarterlyCFObj.netCashForFinancingActivities[3])}            {removeDecimalFromStr(quarterlyCFObj.netCashForFinancingActivities[2])}           {removeDecimalFromStr(quarterlyCFObj.netCashForFinancingActivities[1])}           {removeDecimalFromStr(quarterlyCFObj.netCashForFinancingActivities[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Cash Flow Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Multiples ===============================================================")
+        f.write("\n"f"                                         {annualBSObj.ev_ebitda_dates[5]}             {annualBSObj.ev_ebitda_dates[4]}             {annualBSObj.ev_ebitda_dates[3]}             {annualBSObj.ev_ebitda_dates[2]}             {annualBSObj.ev_ebitda_dates[1]}             {annualBSObj.ev_ebitda_dates[0]}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EV/EBITDA                                 {annualBSObj.ev_ebitda[5]}                 {annualBSObj.ev_ebitda[4]}                 {annualBSObj.ev_ebitda[3]}                 {annualBSObj.ev_ebitda[2]}                 {annualBSObj.ev_ebitda[1]}                 {annualBSObj.ev_ebitda[0]}")
+        f.write("\n"f"EV/EBITDA Growth                              {percent_change(annualBSObj.ev_ebitda[5], annualBSObj.ev_ebitda[4])}                 {percent_change(annualBSObj.ev_ebitda[4], annualBSObj.ev_ebitda[3])}                 {percent_change(annualBSObj.ev_ebitda[3], annualBSObj.ev_ebitda[2])}                 {percent_change(annualBSObj.ev_ebitda[2], annualBSObj.ev_ebitda[1])}                 {percent_change(annualBSObj.ev_ebitda[1], annualBSObj.ev_ebitda[0])}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"PEG Ratio                                  {annualBSObj.peg_ratios[5]}                 {annualBSObj.peg_ratios[4]}                   {annualBSObj.peg_ratios[3]}                  {annualBSObj.peg_ratios[2]}                  {annualBSObj.peg_ratios[1]}                  {annualBSObj.peg_ratios[0]}")
+        f.write("\n"f"PEG Ratio Growth                                {percent_change(annualBSObj.peg_ratios[5], annualBSObj.peg_ratios[4])}                     {percent_change(annualBSObj.peg_ratios[4], annualBSObj.peg_ratios[3])}                   {percent_change(annualBSObj.peg_ratios[3], annualBSObj.peg_ratios[2])}                {percent_change(annualBSObj.peg_ratios[2], annualBSObj.peg_ratios[1])}               {percent_change(annualBSObj.peg_ratios[1], annualBSObj.peg_ratios[0])}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Multiples ===============================================================")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - EBITDA/Interest Payments ===============================================================")
+        f.write("\n"f"                                         {quarterlyISObj.dates[3]}             {quarterlyISObj.dates[2]}             {quarterlyISObj.dates[1]}             {quarterlyISObj.dates[0]}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EBITDA/Interest Payments                  {calculateEBITDAInterst(quarterlyISObj.ebitda[3], quarterlyISObj.interestExpense[3])}                  {calculateEBITDAInterst(quarterlyISObj.ebitda[2], quarterlyISObj.interestExpense[2])}                 {calculateEBITDAInterst(quarterlyISObj.ebitda[1], quarterlyISObj.interestExpense[1])}                 {calculateEBITDAInterst(quarterlyISObj.ebitda[0], quarterlyISObj.interestExpense[0])}")
+        f.write("\n"f"EBITDA/Interest Payments Growth                    {percent_change(calculateEBITDAInterst(quarterlyISObj.ebitda[3], quarterlyISObj.interestExpense[3]), calculateEBITDAInterst(quarterlyISObj.ebitda[2], quarterlyISObj.interestExpense[2]))}                {percent_change(calculateEBITDAInterst(quarterlyISObj.ebitda[2], quarterlyISObj.interestExpense[2]), calculateEBITDAInterst(quarterlyISObj.ebitda[1], quarterlyISObj.interestExpense[1]))}                {percent_change(calculateEBITDAInterst(quarterlyISObj.ebitda[1], quarterlyISObj.interestExpense[1]), calculateEBITDAInterst(quarterlyISObj.ebitda[0], quarterlyISObj.interestExpense[0]))}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - EBITDA/Interest Payments ===============================================================")
+        f.write("\n")
+        f.write("\n")
+
+
+def createAnnualStockTxtFile(ticker):
+    p = Path(ticker)
+    txt_path = p / f"{ticker}.txt"
+    annualBSObj = annual_ticker_map[ticker][0]
+    annualISObj = annual_ticker_map[ticker][1]
+    annualCFObj = annual_ticker_map[ticker][2]
+    stockObj = annual_ticker_map[ticker][3]
+    futureStockObj = annual_ticker_map[ticker][4]
+    with open(txt_path, "w") as f:
+        f.write(f"===================================================== {ticker} (Currency in {stockObj.currency}) - Balance Sheet =====================================================  ")
+        f.write("\n"f"                                         {annualBSObj.dates[3]}             {annualBSObj.dates[2]}             {annualBSObj.dates[1]}             {annualBSObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Assets                             {removeDecimalFromStr(annualBSObj.totalAssets[3])}            {removeDecimalFromStr(annualBSObj.totalAssets[2])}            {removeDecimalFromStr(annualBSObj.totalAssets[1])}            {removeDecimalFromStr(annualBSObj.totalAssets[0])}")
+        f.write("\n"f"Total Assets Growth                                {percent_change(annualBSObj.totalAssets[3], annualBSObj.totalAssets[2])}                 {percent_change(annualBSObj.totalAssets[2], annualBSObj.totalAssets[1])}                 {percent_change(annualBSObj.totalAssets[1], annualBSObj.totalAssets[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Liabilities                        {removeDecimalFromStr(annualBSObj.totalLiabilities[3])}            {removeDecimalFromStr(annualBSObj.totalLiabilities[2])}            {removeDecimalFromStr(annualBSObj.totalLiabilities[1])}            {removeDecimalFromStr(annualBSObj.totalLiabilities[0])}")
+        f.write("\n"f"Total Liabilities Growth                           {percent_change(annualBSObj.totalLiabilities[3], annualBSObj.totalLiabilities[2])}                 {percent_change(annualBSObj.totalLiabilities[2], annualBSObj.totalLiabilities[1])}                 {percent_change(annualBSObj.totalLiabilities[1], annualBSObj.totalLiabilities[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Shareholders Equity                {removeDecimalFromStr(annualBSObj.totalEquity[3])}             {removeDecimalFromStr(annualBSObj.totalEquity[2])}             {removeDecimalFromStr(annualBSObj.totalEquity[1])}             {removeDecimalFromStr(annualBSObj.totalEquity[0])}")
+        f.write("\n"f"Total Shareholders Equity Growth                   {percent_change(annualBSObj.totalEquity[3], annualBSObj.totalEquity[2])}                {percent_change(annualBSObj.totalEquity[2], annualBSObj.totalEquity[1])}                {percent_change(annualBSObj.totalEquity[1], annualBSObj.totalEquity[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Total Cash (Most Recent Quarter)         ${annualBSObj.totalCash}")
+        f.write("\n"f"Total Debt (Most Recent Quarter)         ${annualBSObj.totalDebt}")
+        f.write("\n"f"Current Ratio (Most Recent Quarter)      {annualBSObj.currentRatio}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Balance Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Income Sheet =====================================================  ")
+        f.write("\n"f"                                         {annualISObj.dates[3]}             {annualISObj.dates[2]}             {annualISObj.dates[1]}             {annualISObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Revenue                                  {removeDecimalFromStr(annualISObj.revenue[3])}            {removeDecimalFromStr(annualISObj.revenue[2])}            {removeDecimalFromStr(annualISObj.revenue[1])}            {removeDecimalFromStr(annualISObj.revenue[0])}")
+        f.write("\n"f"Revenue Growth                                     {percent_change(annualISObj.revenue[3], annualISObj.revenue[2])}                 {percent_change(annualISObj.revenue[2], annualISObj.revenue[1])}                 {percent_change(annualISObj.revenue[1], annualISObj.revenue[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Gross Profit                             {removeDecimalFromStr(annualISObj.grossProfit[3])}            {removeDecimalFromStr(annualISObj.grossProfit[2])}            {removeDecimalFromStr(annualISObj.grossProfit[1])}            {removeDecimalFromStr(annualISObj.grossProfit[0])}")
+        f.write("\n"f"Gross Profit Growth                                {percent_change(annualISObj.grossProfit[3], annualISObj.grossProfit[2])}                {percent_change(annualISObj.grossProfit[2], annualISObj.grossProfit[1])}                 {percent_change(annualISObj.grossProfit[1], annualISObj.grossProfit[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Net Income                               {removeDecimalFromStr(annualISObj.netIncome[3])}             {removeDecimalFromStr(annualISObj.netIncome[2])}             {removeDecimalFromStr(annualISObj.netIncome[1])}             {removeDecimalFromStr(annualISObj.netIncome[0])}")
+        f.write("\n"f"Net Income Growth                                  {percent_change(annualISObj.netIncome[3], annualISObj.netIncome[2])}                 {percent_change(annualISObj.netIncome[2], annualISObj.netIncome[1])}                 {percent_change(annualISObj.netIncome[1], annualISObj.netIncome[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Research And Development                 {removeDecimalFromStr(annualISObj.researchAndDevelopment[3])}             {removeDecimalFromStr(annualISObj.researchAndDevelopment[2])}             {removeDecimalFromStr(annualISObj.researchAndDevelopment[1])}             {annualISObj.researchAndDevelopment[0]}")
+        f.write("\n"f"Research And Development Growth                    {percent_change(annualISObj.researchAndDevelopment[3], annualISObj.researchAndDevelopment[2])}                {percent_change(annualISObj.researchAndDevelopment[2], annualISObj.researchAndDevelopment[1])}                {percent_change(annualISObj.researchAndDevelopment[1], annualISObj.researchAndDevelopment[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EBITDA                                  {removeDecimalFromStr(annualISObj.ebitda[3])}            {removeDecimalFromStr(annualISObj.ebitda[2])}            {removeDecimalFromStr(annualISObj.ebitda[1])}            {removeDecimalFromStr(annualISObj.ebitda[0])}")
+        f.write("\n"f"EBITDA Growth                                     {percent_change(annualISObj.ebitda[3], annualISObj.ebitda[2])}                 {percent_change(annualISObj.ebitda[2], annualISObj.ebitda[1])}                 {percent_change(annualISObj.ebitda[1], annualISObj.ebitda[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Income Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Cash Flow Sheet =====================================================  ")
+        f.write("\n"f"                                         {annualCFObj.dates[3]}             {annualCFObj.dates[2]}             {annualCFObj.dates[1]}             {annualCFObj.dates[0]}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Free Cash Flow                           {removeDecimalFromStr(annualCFObj.freeCashFlow[3])}             {removeDecimalFromStr(annualCFObj.freeCashFlow[2])}            {removeDecimalFromStr(annualCFObj.freeCashFlow[1])}             {removeDecimalFromStr(annualCFObj.freeCashFlow[0])}")
+        f.write("\n"f"Free Cash Flow Growth                              {percent_change(annualCFObj.freeCashFlow[3], annualCFObj.freeCashFlow[2])}                {percent_change(annualCFObj.freeCashFlow[2], annualCFObj.freeCashFlow[1])}                {percent_change(annualCFObj.freeCashFlow[1], annualCFObj.freeCashFlow[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Net Cash For Investing                   {removeDecimalFromStr(annualCFObj.netCashForInvestingActivities[3])}            {removeDecimalFromStr(annualCFObj.netCashForInvestingActivities[2])}            {removeDecimalFromStr(annualCFObj.netCashForInvestingActivities[1])}              {removeDecimalFromStr(annualCFObj.netCashForInvestingActivities[0])}")
+        f.write("\n"f"Net Cash For Financing                   {removeDecimalFromStr(annualCFObj.netCashForFinancingActivities[3])}            {removeDecimalFromStr(annualCFObj.netCashForFinancingActivities[2])}           {removeDecimalFromStr(annualCFObj.netCashForFinancingActivities[1])}           {removeDecimalFromStr(annualCFObj.netCashForFinancingActivities[0])}")
+        f.write("\n"f"---------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Cash Flow Sheet =====================================================  ")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Future Data Analysis for EPS")
+        f.write("\n"f"For Current Year ({futureStockObj.currentYear}): The EPS is expected to be {futureStockObj.currentYearEPS}")
+        f.write("\n"f"For Next Year ({futureStockObj.nextYear}): The EPS is expected to be {futureStockObj.nextYearEPS}")
+        f.write("\n"f"The EPS Growth from Current Year ({futureStockObj.currentYear}) to Next Year ({futureStockObj.nextYear}) is {percent_change(futureStockObj.currentYearEPS, futureStockObj.nextYearEPS)}")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Future Data Analysis For Revenue")
+        f.write("\n"f"For Current Year ({futureStockObj.currentYear}): The Revenue is expected to be {futureStockObj.currentYearRev}")
+        f.write("\n"f"For Next Year ({futureStockObj.nextYear}): The Revenue is expected to be {futureStockObj.nextYearRev}")
+        f.write("\n"f"The Revenue Growth from Current Year ({futureStockObj.currentYear}) to Next Year ({futureStockObj.nextYear}) is {percent_change(stripAlphabetFromNum(futureStockObj.currentYearRev), stripAlphabetFromNum(futureStockObj.nextYearRev))}")
+        f.write("\n"f"==========================================================================================================================")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Multiples ===============================================================")
+        f.write("\n"f"                                         {annualBSObj.ev_ebitda_dates[5]}             {annualBSObj.ev_ebitda_dates[4]}             {annualBSObj.ev_ebitda_dates[3]}             {annualBSObj.ev_ebitda_dates[2]}             {annualBSObj.ev_ebitda_dates[1]}             {annualBSObj.ev_ebitda_dates[0]}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EV/EBITDA                                 {annualBSObj.ev_ebitda[5]}                 {annualBSObj.ev_ebitda[4]}                 {annualBSObj.ev_ebitda[3]}                 {annualBSObj.ev_ebitda[2]}                 {annualBSObj.ev_ebitda[1]}                 {annualBSObj.ev_ebitda[0]}")
+        f.write("\n"f"EV/EBITDA Growth                              {percent_change(annualBSObj.ev_ebitda[5], annualBSObj.ev_ebitda[4])}                 {percent_change(annualBSObj.ev_ebitda[4], annualBSObj.ev_ebitda[3])}                 {percent_change(annualBSObj.ev_ebitda[3], annualBSObj.ev_ebitda[2])}                 {percent_change(annualBSObj.ev_ebitda[2], annualBSObj.ev_ebitda[1])}                 {percent_change(annualBSObj.ev_ebitda[1], annualBSObj.ev_ebitda[0])}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"PEG Ratio                                  {annualBSObj.peg_ratios[5]}                 {annualBSObj.peg_ratios[4]}                   {annualBSObj.peg_ratios[3]}                  {annualBSObj.peg_ratios[2]}                  {annualBSObj.peg_ratios[1]}                  {annualBSObj.peg_ratios[0]}")
+        f.write("\n"f"PEG Ratio Growth                                {percent_change(annualBSObj.peg_ratios[5], annualBSObj.peg_ratios[4])}                     {percent_change(annualBSObj.peg_ratios[4], annualBSObj.peg_ratios[3])}                   {percent_change(annualBSObj.peg_ratios[3], annualBSObj.peg_ratios[2])}                {percent_change(annualBSObj.peg_ratios[2], annualBSObj.peg_ratios[1])}               {percent_change(annualBSObj.peg_ratios[1], annualBSObj.peg_ratios[0])}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - Multiples ===============================================================")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - EBITDA/Interest Payments ===============================================================")
+        f.write("\n"f"                                         {annualISObj.dates[3]}             {annualISObj.dates[2]}             {annualISObj.dates[1]}             {annualISObj.dates[0]}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"EBITDA/Interest Payments                  {calculateEBITDAInterst(annualISObj.ebitda[3], annualISObj.interestExpense[3])}                  {calculateEBITDAInterst(annualISObj.ebitda[2], annualISObj.interestExpense[2])}                 {calculateEBITDAInterst(annualISObj.ebitda[1], annualISObj.interestExpense[1])}                 {calculateEBITDAInterst(annualISObj.ebitda[0], annualISObj.interestExpense[0])}")
+        f.write("\n"f"EBITDA/Interest Payments Growth                    {percent_change(calculateEBITDAInterst(annualISObj.ebitda[3], annualISObj.interestExpense[3]), calculateEBITDAInterst(annualISObj.ebitda[2], annualISObj.interestExpense[2]))}                {percent_change(calculateEBITDAInterst(annualISObj.ebitda[2], annualISObj.interestExpense[2]), calculateEBITDAInterst(annualISObj.ebitda[1], annualISObj.interestExpense[1]))}                {percent_change(calculateEBITDAInterst(annualISObj.ebitda[1], annualISObj.interestExpense[1]), calculateEBITDAInterst(annualISObj.ebitda[0], annualISObj.interestExpense[0]))}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} (Currency in {stockObj.currency}) - EBITDA/Interest Payments ===============================================================")
+        f.write("\n")
+        f.write("\n")
+        f.write("\n"f"===================================================== {ticker} Dividend Yield and Current P/E Ratio ==================================================================")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"Dividend Yield: {stockObj.dividend}")
+        f.write("\n"f"P/E Ratio: {stockObj.peRatio}")
+        f.write("\n"f"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+        f.write("\n"f"===================================================== {ticker} Dividend Yield and Current P/E Ratio ==================================================================")
+        f.write("\n")
+        f.write("\n")
+
+
+        
+def setUpDirectories(dirName):
+    dir_name = dirName + '-' + str(time.time())
+    p = Path(dir_name)
+    p.mkdir(exist_ok=True)
+    os.chdir(p)
+    for ticker in tickers:
+        (Path(ticker)).mkdir(exist_ok=True)
+
+
+
+
 setUpAnnualAndQuarterlyObjects()
+setUpDirectories('Quarterly')
+annual_ticker_map = setUpAnnualTickerMap()
+quarterly_ticker_map = setUpQuarterlyTickerMap()
+createQuarterlyStockTxtFile("AAPL")
+print('===============================================')
+for key, value in quarterly_ticker_map.items():
+    print(key, value) 
+print('-----------------------------------------------')
 createAnnualExcelWorkbook()
 createQuarterlyExcelWorkbook()
 createFutureExcelWorkbook()

@@ -14,8 +14,12 @@ class BSObj:
         self.totalCash = ''
         self.totalDebt = ''
         self.currentRatio = ''
+        self.ev_ebitda = []
+        self.ev_ebitda_dates = []
+        self.peg_ratios = []
 
-
+    def __repr__(self):
+        return f"BSObj(ticker={self.ticker}, dates={self.dates}, totalAssets={self.totalAssets}, totalLiab={self.totalLiabilities}, totalEquity={self.totalEquity}, totalCash={self.totalCash}, totalDebt={self.totalDebt}, currRatio={self.currentRatio})"
 
     def getBSYahooFinancialDataUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/balance-sheet?p=' + ticker
@@ -39,6 +43,12 @@ def printBSObj(bsObj):
     print(bsObj.totalDebt)
     print('Current Ratio')
     print(bsObj.currentRatio)
+    print('EV/EBITDA')
+    print(bsObj.ev_ebitda)
+    print('EV/EBITDA dates')
+    print(bsObj.ev_ebitda_dates)
+    print('PEG Ratios')
+    print(bsObj.peg_ratios)
 
 def createErrorBSObj(ticker):
     errorBSObj = BSObj(ticker)
@@ -49,6 +59,9 @@ def createErrorBSObj(ticker):
     errorBSObj.totalCash = '0.000'
     errorBSObj.totalDebt = '0.000'
     errorBSObj.currentRatio = '0.000'
+    errorBSObj.peg_ratios = ['0.000', '0.000', '0.000', '0.000']
+    errorBSObj.ev_ebitda = ['0.000', '0.000', '0.000', '0.000']
+    errorBSObj.ev_ebitda_dates = ['0.000', '0.000', '0.000', '0.000']
     return errorBSObj
 
 def cleanBSObj(bsObj):
@@ -88,6 +101,17 @@ def readAnnualBSDataForTicker(ticker):
         bsObj.totalCash = getRowValueFromStatisticsRow(soup, 'Total Cash')['Total Cash']
         bsObj.totalDebt = getRowValueFromStatisticsRow(soup, 'Total Debt')['Total Debt']
         bsObj.currentRatio = getRowValueFromStatisticsRow(soup, 'Current Ratio')['Current Ratio']
+        ev_ebitda = getStatisticsTableByText(soup, "Enterprise Value/EBITDA")
+        ev_ebitda_dates = getStatisticsDatesByText(soup, "Current")
+        peg_ratios = getPEGRatios(soup)
+        peg_ratios.pop(0)
+        ev_ebitda.pop(0)
+        ev_ebitda_dates.pop(0)
+        bsObj.ev_ebitda = ev_ebitda
+        bsObj.ev_ebitda_dates = ev_ebitda_dates
+        bsObj.peg_ratios = peg_ratios
+
+
     except Exception as e:
         print(e)
         bsObj.totalCash = '0.000'
@@ -102,6 +126,22 @@ def readAnnualBSDataForTicker(ticker):
 
 def readQuarterlyBSDataForTicker(ticker):
     bsObj = BSObj(ticker)
+
+    statistics_response = requests.get(bsObj.getStatisticsDataUrl(ticker), headers=getHeader())
+    statistics_soup = BeautifulSoup(statistics_response.content, "html.parser")
+
+    if statistics_soup:
+        ev_ebitda = getStatisticsTableByText(statistics_soup, "Enterprise Value/EBITDA")
+        ev_ebitda_dates = getStatisticsDatesByText(statistics_soup, "Current")
+        peg_ratios = getPEGRatios(statistics_soup)
+        peg_ratios.pop(0)
+        ev_ebitda.pop(0)
+        ev_ebitda_dates.pop(0)
+        bsObj.ev_ebitda = ev_ebitda
+        bsObj.ev_ebitda_dates = ev_ebitda_dates
+        bsObj.peg_ratios = peg_ratios
+
+
 
     soup = clickQuarterlyButton(bsObj.getBSYahooFinancialDataUrl(ticker))
 
@@ -135,6 +175,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    bsObj = readQuarterlyBSDataForTicker(args.ticker)
+    bsObj = readAnnualBSDataForTicker(args.ticker)
 
 

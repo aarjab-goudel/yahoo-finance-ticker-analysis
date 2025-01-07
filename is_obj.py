@@ -16,9 +16,13 @@ class ISObj:
         self.netIncome = []
         self.researchAndDevelopment = []
         self.ebitda = []
+        self.interestExpense = []
         
     def getISYahooFinancialDataUrl(self, ticker):
         return 'https://finance.yahoo.com/quote/' + ticker + '/financials?p=' + ticker
+
+    def __repr__(self):
+        return f"ISObj(ticker={self.ticker}, dates={self.dates}, revenue={self.revenue}, costOfRevenue={self.costOfRevenue}, grossProfit={self.grossProfit}, operatingIncome={self.operatingIncome}, netIncome={self.netIncome}, R&D={self.researchAndDevelopment}, EBITDA={self.ebitda})"
 
     def remove_ttm_from_isObj(self):
         if self.dates:
@@ -30,6 +34,8 @@ class ISObj:
                 self.operatingIncome.pop(0)
                 self.netIncome.pop(0)
                 self.researchAndDevelopment.pop(0)
+                self.ebitda.pop(0)
+                self.interestExpense.pop(0)
 
     def remove_string_from_num_list(self, num_list):
         for item in num_list.copy():
@@ -44,7 +50,9 @@ def cleanISObj(isObj):
     isObj.grossProfit = cleanRowValues(isObj.dates, isObj.grossProfit)
     isObj.operatingIncome = cleanRowValues(isObj.dates, isObj.operatingIncome)
     isObj.netIncome = cleanRowValues(isObj.dates, isObj.netIncome)
-    isObj.researchAndDevelopment = cleanRowValues(isObj.dates, isObj.researchAndDevelopment)            
+    isObj.researchAndDevelopment = cleanRowValues(isObj.dates, isObj.researchAndDevelopment)     
+    isObj.ebitda = cleanRowValues(isObj.dates, isObj.ebitda)
+    isObj.interestExpense = cleanRowValues(isObj.dates, isObj.interestExpense)       
 
 
 def printISObj(isObj):
@@ -64,6 +72,8 @@ def printISObj(isObj):
     print(isObj.researchAndDevelopment)
     print('EBITDA')
     print(isObj.ebitda)
+    print('Interest Expense')
+    print(isObj.interestExpense)
 
 def remove_all_text_from_isObj(isObj):
     isObj.remove_string_from_num_list(isObj.revenue)
@@ -72,6 +82,8 @@ def remove_all_text_from_isObj(isObj):
     isObj.remove_string_from_num_list(isObj.operatingIncome)
     isObj.remove_string_from_num_list(isObj.netIncome)
     isObj.remove_string_from_num_list(isObj.researchAndDevelopment)
+    isObj.remove_string_from_num_list(isObj.ebitda)
+    isObj.remove_string_from_num_list(isObj.interestExpense)
 
 def create_quarterly_research_and_dev_list(dates):
     q_r_d_list = []
@@ -89,6 +101,8 @@ def createErrorISObj(ticker):
     errorISObj.operatingIncome = ['0.000', '0.000', '0.000', '0.000']
     errorISObj.netIncome = ['0.000', '0.000', '0.000', '0.000']
     errorISObj.researchAndDevelopment = ['0.000', '0.000', '0.000', '0.000']
+    errorISObj.ebitda = ['0.000', '0.000', '0.000', '0.000']
+    errorISObj.interestExpense = ['0.000', '0.000', '0.000', '0.000']
     return errorISObj
 
  
@@ -119,6 +133,8 @@ def readAnnualISDataForTicker(ticker):
     isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
 
     isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
+
+    isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense')
 
 
 
@@ -162,6 +178,8 @@ def readQuarterlyISDataForTicker(ticker):
 
         isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
 
+        isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense')
+
         isObj.researchAndDevelopment = create_quarterly_research_and_dev_list(isObj.dates)
         remove_all_text_from_isObj(isObj)
         isObj.remove_ttm_from_isObj()
@@ -182,5 +200,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    isObj = readAnnualISDataForTicker(args.ticker)
+    isObj = readQuarterlyISDataForTicker(args.ticker)
  
