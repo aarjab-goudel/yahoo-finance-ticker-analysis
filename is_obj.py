@@ -137,8 +137,8 @@ def readAnnualISDataForTicker(ticker):
     isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense')
 
 
-
-    r_and_d_soup = clickOperatingExpense(isObj.getISYahooFinancialDataUrl(ticker))
+    page = open_browser()
+    r_and_d_soup = clickOperatingExpense(page, isObj.getISYahooFinancialDataUrl(ticker))
     if r_and_d_soup:
         isObj.researchAndDevelopment = readDataFromPageSource(r_and_d_soup, 'Research & Development')
     else:
@@ -154,8 +154,10 @@ def readAnnualISDataForTicker(ticker):
 
 def readQuarterlyISDataForTicker(ticker):
     isObj = ISObj(ticker)
+    page = open_browser()
+
     
-    soup = clickQuarterlyButton(isObj.getISYahooFinancialDataUrl(ticker))
+    soup = clickQuarterlyButton(page, isObj.getISYahooFinancialDataUrl(ticker))
 
     if soup:
         #isObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']

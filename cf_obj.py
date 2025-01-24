@@ -99,8 +99,8 @@ def readAnnualCFDataForTicker(ticker):
 
 def readQuarterlyCFDataForTicker(ticker):
     cfObj = CFObj(ticker)
-    
-    soup = clickQuarterlyButton(cfObj.getCFYahooFinancialDataUrl(ticker))
+    page = open_browser()
+    soup = clickQuarterlyButton(page, cfObj.getCFYahooFinancialDataUrl(ticker))
 
     if soup:
        #cfObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']

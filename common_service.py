@@ -8,10 +8,47 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from playwright.sync_api import sync_playwright
+from datetime import datetime
 import time
 import requests
 import constants
 import re
+
+_playwright = None
+_browser = None
+_page = None
+
+def open_browser():
+    """
+    Opens the Playwright browser exactly once and returns a reference to the page.
+    If already open, returns the existing page.
+    """
+    global _playwright, _browser, _page
+    if not _playwright:
+        _playwright = sync_playwright().start()
+    if not _browser:
+        # Launch browser in headless mode
+        _browser = _playwright.chromium.launch(headless=True)
+    if not _page:
+        _page = _browser.new_page()
+    return _page
+
+def close_browser():
+    """
+    Closes the Playwright browser if it's open.
+    """
+    global _playwright, _browser, _page
+    if _page:
+        _page.close()
+        _page = None
+    if _browser:
+        _browser.close()
+        _browser = None
+    if _playwright:
+        _playwright.stop()
+        _playwright = None
+
+
 
 def getHeader():
     # Set up the request headers that we're going to use, to simulate
@@ -165,62 +202,99 @@ def is_valid_number(num):
     except ValueError:
         return False
 
-def is_xpath_valid(driver, xpath):
-    try:
-        driver.find_element_by_xpath(xpath)
-        return True
-    except Exception as e:
+def is_data_quarterly(soup):
+    """
+    Returns True if the 'Breakdown' row has consecutive dates
+    whose differences are <= 100 days (approx. 3 months).
+    Otherwise, returns False.
+    """
+    # Grab the array of date strings for the 'Breakdown' row
+    dates = readDataFromPageSource(soup, 'Breakdown')  # e.g. ["9/30/2024", "6/30/2024", ...]
+
+    # Attempt to parse each date string into a datetime object
+    parsed_dates = []
+    for ds in dates:
+        try:
+            # Format is "m/d/yyyy" e.g. "9/30/2024"
+            parsed_dt = datetime.strptime(ds.strip(), "%m/%d/%Y")
+            parsed_dates.append(parsed_dt)
+        except Exception:
+            # If parsing fails, might be a placeholder like '0.000'
+            pass
+
+    # If we couldn't parse at least 2 valid dates, we can't confirm quarterly intervals
+    if len(parsed_dates) < 2:
         return False
 
+    # Sort them so we can check consecutive differences
+    parsed_dates.sort()
 
-def clickQuarterlyButton(url):
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url)  
+    # Check consecutive day differences
+    for i in range(len(parsed_dates) - 1):
+        diff_days = (parsed_dates[i+1] - parsed_dates[i]).days
+        # If difference is more than ~100 days, it's likely annual or not updated
+        if diff_days > 120:
+            return False
+
+    # If all consecutive pairs are <= 100 days, it looks like quarterly data
+    return True
+
+
+def clickQuarterlyButton(page, url):
+    final_soup = None
+    MAX_ATTEMPTS = 10
+    page.goto(url) 
+    for attemps in range(MAX_ATTEMPTS):
+        time.sleep(10)
+        try: 
 
             # Click the Quarterly button
             page.wait_for_selector("text=Quarterly")
             page.click("text=Quarterly")
 
             # Wait for the page to update
-            time.sleep(30)
+            time.sleep(10)
 
             html = page.content()
             soup = BeautifulSoup(html, "lxml")
-            browser.close()
-            print("Clicked on Quarterly Button!!!!!")
-            return soup
-    except Exception as e:
-        print('-------------------------------------------------')
-        print('EXCEPTION OCCURED IN CLICK QUARTERLY BUTTON !!!!')
-        print(e)
-        print('-------------------------------------------------')
-        return None
+            # Check if it is quarterly
+            if is_data_quarterly(soup):
+                print(">> Verified: data is Quarterly!")
+                final_soup = soup
+                break
+            else:
+                print(f">> Not Quarterly yet. Retrying... {attemps}")
+                time.sleep(3)
+        except Exception as e:
+            print('-------------------------------------------------')
+            print('EXCEPTION OCCURED IN CLICK QUARTERLY BUTTON !!!!')
+            print(e)
+            print('-------------------------------------------------')
+            return None
+    if not final_soup:
+        raise Exception("Could not get quarterly data after multiple attempts")
+    print("Clicked on Quarterly Button!!!!!")
+    return final_soup
 
 
 
-def clickOperatingExpense(url):
+
+def clickOperatingExpense(page, url):
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url)
+        page.goto(url)
 
-            # Wait for the button to appear
-            page.wait_for_selector("button[aria-label='Operating Expense']")
+        # Wait for the button to appear
+        page.wait_for_selector("button[aria-label='Operating Expense']")
 
-            # Click the Operating Expense button
-            page.click("button[aria-label='Operating Expense']")
+        # Click the Operating Expense button
+        page.click("button[aria-label='Operating Expense']")
 
-            # Give some time for the page to update after clicking
-            time.sleep(5)
+        # Give some time for the page to update after clicking
+        time.sleep(5)
 
-            html = page.content()
-            soup = BeautifulSoup(html, "lxml")
-            browser.close()
-            return soup
+        html = page.content()
+        soup = BeautifulSoup(html, "lxml")
+        return soup
     except Exception as e:
         print('-------------------------------------------------')
         print('EXCEPTION OCCURED IN CLICK OPERATING EXPENSE!!!!')
@@ -292,7 +366,8 @@ def parse_numeric_value(value):
         return 0
     if 'ERROR' in value:
         return 'ERROR'
-    return float(value)
+    value_no_letters = re.sub(r'[a-zA-Z]', '', value)
+    return float(value_no_letters)
 
 def calculateEBITDAInterst(ebitda, interest):
     numeric_ebitda = parse_numeric_value(ebitda)

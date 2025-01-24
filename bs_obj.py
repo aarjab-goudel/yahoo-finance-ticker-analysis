@@ -126,6 +126,7 @@ def readAnnualBSDataForTicker(ticker):
 
 def readQuarterlyBSDataForTicker(ticker):
     bsObj = BSObj(ticker)
+    page = open_browser()
 
     statistics_response = requests.get(bsObj.getStatisticsDataUrl(ticker), headers=getHeader())
     statistics_soup = BeautifulSoup(statistics_response.content, "html.parser")
@@ -143,7 +144,7 @@ def readQuarterlyBSDataForTicker(ticker):
 
 
 
-    soup = clickQuarterlyButton(bsObj.getBSYahooFinancialDataUrl(ticker))
+    soup = clickQuarterlyButton(page, bsObj.getBSYahooFinancialDataUrl(ticker))
 
     if soup:
         #bsObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']

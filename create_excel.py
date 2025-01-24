@@ -246,6 +246,7 @@ def writeToBalanceSheet(bsSheet, bsObjs, stockObjs, tickers, year):
 
 
 def setUpAnnualAndQuarterlyObjects():
+    open_browser()
     for ticker in tickers:
         print(ticker)
         annualBSObj = readAnnualBSDataForTicker(ticker)
@@ -277,6 +278,7 @@ def setUpAnnualAndQuarterlyObjects():
 
         print('FINISHED FUTURE STOCK DATA')
         time.sleep(10)
+    close_browser()
     
 
 
@@ -413,6 +415,7 @@ def setUpQuarterlyTickerMap():
     return ticker_map
 
 def setUpAnnualTickerMap():  
+    
     ticker_map = {}
     for ticker in tickers:
         ticker_map[ticker] = []
@@ -443,9 +446,10 @@ def setUpAnnualTickerMap():
 
     return ticker_map
 
-def createQuarterlyStockTxtFile(ticker):
+def createQuarterlyStockTxtFile(ticker, base_dir):
     p = Path(ticker)
-    txt_path = p / f"{ticker}.txt"
+    ticker_dir = base_dir / ticker
+    txt_path = ticker_dir / f"{ticker}.txt"
     quarterlyBSObj = quarterly_ticker_map[ticker][0]
     quarterlyISObj = quarterly_ticker_map[ticker][1]
     quarterlyCFObj = quarterly_ticker_map[ticker][2]
@@ -528,9 +532,10 @@ def createQuarterlyStockTxtFile(ticker):
         f.write("\n")
 
 
-def createAnnualStockTxtFile(ticker):
+def createAnnualStockTxtFile(ticker, base_dir):
     p = Path(ticker)
-    txt_path = p / f"{ticker}.txt"
+    ticker_dir = base_dir / ticker
+    txt_path = ticker_dir / f"{ticker}.txt"
     annualBSObj = annual_ticker_map[ticker][0]
     annualISObj = annual_ticker_map[ticker][1]
     annualCFObj = annual_ticker_map[ticker][2]
@@ -632,28 +637,66 @@ def createAnnualStockTxtFile(ticker):
 
 
         
-def setUpDirectories(dirName):
-    dir_name = dirName + '-' + str(time.time())
-    p = Path(dir_name)
-    p.mkdir(exist_ok=True)
-    os.chdir(p)
+def setUpDirectories(dirName, tickers):
+    """
+    Creates a new folder named "<dirName>-<timestamp>" in the
+    same directory as create_excel.py, then creates subfolders
+    for each ticker. Returns the full Path.
+    """
+
+    # 1) Identify the directory where create_excel.py lives
+    #    This ensures Annual/Quarterly folders go *alongside* create_excel.py.
+    current_script_dir = Path(__file__).parent.resolve()
+
+    # 2) Build the new folder name: e.g. "Annual-1673365582"
+    timestamp = int(time.time())
+    new_dir_name = f"{dirName}-{timestamp}"
+
+    # 3) Combine them to get the full path
+    #    e.g. /.../yahoo-finance-ticker-analysis/Annual-1673365582
+    full_dir_path = current_script_dir / new_dir_name
+    full_dir_path.mkdir(parents=True, exist_ok=True)
+    print(f"Created directory: {full_dir_path}")
+
+    # 4) Create a subfolder for each ticker
     for ticker in tickers:
-        (Path(ticker)).mkdir(exist_ok=True)
+        ticker_subdir = full_dir_path / ticker
+        ticker_subdir.mkdir(exist_ok=True)
+        print(f"Created subdirectory: {ticker_subdir}")
+
+    # 5) Return the folder path
+    return full_dir_path
 
 
+if __name__ == "__main__":
+    print('Starting now -- please wait until finished')
 
+    # 1) Scrape data, build your maps
+    setUpAnnualAndQuarterlyObjects()       # presumably does the scraping
+    annual_ticker_map = setUpAnnualTickerMap()
+    quarterly_ticker_map = setUpQuarterlyTickerMap()
 
-setUpAnnualAndQuarterlyObjects()
-setUpDirectories('Quarterly')
-annual_ticker_map = setUpAnnualTickerMap()
-quarterly_ticker_map = setUpQuarterlyTickerMap()
-createQuarterlyStockTxtFile("AAPL")
-print('===============================================')
-for key, value in quarterly_ticker_map.items():
-    print(key, value) 
-print('-----------------------------------------------')
-createAnnualExcelWorkbook()
-createQuarterlyExcelWorkbook()
-createFutureExcelWorkbook()
+    # 2) Create the "Annual-<timestamp>" directory
+    annual_base_dir = setUpDirectories('Annual', tickers)
+    for ticker in tickers:
+        createAnnualStockTxtFile(ticker, annual_base_dir)
 
-print('Finished!')
+    # 3) Create the "Quarterly-<timestamp>" directory
+    quarterly_base_dir = setUpDirectories('Quarterly', tickers)
+    for ticker in tickers:
+        createQuarterlyStockTxtFile(ticker, quarterly_base_dir)
+
+    # 4) Create your Excel workbooks
+    createAnnualExcelWorkbook()
+    createQuarterlyExcelWorkbook()
+    createFutureExcelWorkbook()
+
+    print('===============================================')
+    for key, value in quarterly_ticker_map.items():
+        print(key, value) 
+    print('-----------------------------------------------')
+    print('===============================================')
+    for key, value in annual_ticker_map.items():
+        print(key, value) 
+    print('-----------------------------------------------')
+    print('Finished!')
