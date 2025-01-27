@@ -114,33 +114,27 @@ def readAnnualISDataForTicker(ticker):
     print('Income Statement Response Code for ' + ticker + ' is ' + str(response.status_code))
     soup = BeautifulSoup(response.content, "html.parser")
 
-    #isObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    isObj.dates = readDataFromPageSource(soup, 'Breakdown')
+    isObj.dates = readDataFromPageSource(soup, 'Breakdown', False)
 
-    #isObj.revenue = getRowValuesByText(soup, 'Total Revenue', 'span')['Total Revenue']
-    isObj.revenue = readDataFromPageSource(soup, 'Total Revenue')
+    isObj.revenue = readDataFromPageSource(soup, 'Total Revenue', False)
 
-    #isObj.costOfRevenue = getRowValuesByText(soup, 'Cost of Revenue', 'span')['Cost of Revenue']
-    isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue')
+    isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue', False)
 
-    #isObj.grossProfit = getRowValuesByText(soup, 'Gross Profit', 'span')['Gross Profit']
-    isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit')
+    isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit', False)
 
-    #isObj.operatingIncome = getRowValuesByText(soup, 'Operating Income', 'span')['Operating Income']
-    isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income')
+    isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income', False)
 
-    #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation'] 
-    isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
+    isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation', False)
 
-    isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
+    isObj.ebitda = readDataFromPageSource(soup, 'EBITDA', False)
 
-    isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense')
+    isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense', False)
 
 
     page = open_browser()
     r_and_d_soup = clickOperatingExpense(page, isObj.getISYahooFinancialDataUrl(ticker))
     if r_and_d_soup:
-        isObj.researchAndDevelopment = readDataFromPageSource(r_and_d_soup, 'Research & Development')
+        isObj.researchAndDevelopment = readDataFromPageSource(r_and_d_soup, 'Research & Development', False)
     else:
         isObj.researchAndDevelopment = ['0.000', '0.000', '0.000', '0.000']
  
@@ -160,27 +154,21 @@ def readQuarterlyISDataForTicker(ticker):
     soup = clickQuarterlyButton(page, isObj.getISYahooFinancialDataUrl(ticker))
 
     if soup:
-        #isObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        isObj.dates = readDataFromPageSource(soup, 'Breakdown')
+        isObj.dates = readDataFromPageSource(soup, 'Breakdown', True)
 
-        #isObj.revenue = getRowValuesByText(soup, 'Total Revenue', 'span')['Total Revenue']
-        isObj.revenue = readDataFromPageSource(soup, 'Total Revenue')
+        isObj.revenue = readDataFromPageSource(soup, 'Total Revenue', True)
 
-        #isObj.costOfRevenue = getRowValuesByText(soup, 'Cost of Revenue', 'span')['Cost of Revenue']
-        isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue')
+        isObj.costOfRevenue = readDataFromPageSource(soup, 'Cost of Revenue', True)
 
-        #isObj.grossProfit = getRowValuesByText(soup, 'Gross Profit', 'span')['Gross Profit']
-        isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit')
+        isObj.grossProfit = readDataFromPageSource(soup, 'Gross Profit', True)
 
-        #isObj.operatingIncome = getRowValuesByText(soup, 'Operating Income', 'span')['Operating Income']
-        isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income')
+        isObj.operatingIncome = readDataFromPageSource(soup, 'Operating Income', True)
 
-        #isObj.netIncome = getRowValuesByText(soup, 'Net Income from Continuing & Discontinued Operation', 'span')['Net Income from Continuing & Discontinued Operation']
-        isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation')
+        isObj.netIncome = readDataFromPageSource(soup, 'Net Income from Continuing & Discontinued Operation', True)
 
-        isObj.ebitda = readDataFromPageSource(soup, 'EBITDA')
+        isObj.ebitda = readDataFromPageSource(soup, 'EBITDA', True)
 
-        isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense')
+        isObj.interestExpense = readDataFromPageSource(soup, 'Interest Expense', True)
 
         isObj.researchAndDevelopment = create_quarterly_research_and_dev_list(isObj.dates)
         remove_all_text_from_isObj(isObj)

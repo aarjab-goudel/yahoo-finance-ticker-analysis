@@ -72,23 +72,17 @@ def readAnnualCFDataForTicker(ticker):
     soup = BeautifulSoup(response.content, "html.parser")
 
 
-    #cfObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    cfObj.dates = readDataFromPageSource(soup, 'Breakdown')
+    cfObj.dates = readDataFromPageSource(soup, 'Breakdown', False)
 
-    #cfObj.netCashByOperatingActivities = getRowValuesByText(soup, 'Operating Cash Flow', 'span')['Operating Cash Flow']
-    cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow')
+    cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow', False)
 
-    #cfObj.netCashForInvestingActivities = getRowValuesByText(soup, 'Investing Cash Flow', 'span')['Investing Cash Flow']
-    cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow')
+    cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow', False)
 
-    #cfObj.netCashForFinancingActivities = getRowValuesByText(soup, 'Financing Cash Flow', 'span')['Financing Cash Flow']
-    cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow')
+    cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow', False)
 
-    #cfObj.capitalExpenditures = getRowValuesByText(soup, 'Capital Expenditure', 'span')['Capital Expenditure']
-    cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure')
+    cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure', False)
 
-    #cfObj.freeCashFlow = getRowValuesByText(soup, 'Free Cash Flow', 'span')['Free Cash Flow']
-    cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow')
+    cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow', False)
 
     cfObj.remove_ttm_from_cfObj()
     cleanCFObj(cfObj)
@@ -103,23 +97,17 @@ def readQuarterlyCFDataForTicker(ticker):
     soup = clickQuarterlyButton(page, cfObj.getCFYahooFinancialDataUrl(ticker))
 
     if soup:
-       #cfObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        cfObj.dates = readDataFromPageSource(soup, 'Breakdown')
+        cfObj.dates = readDataFromPageSource(soup, 'Breakdown', True)
 
-        #cfObj.netCashByOperatingActivities = getRowValuesByText(soup, 'Operating Cash Flow', 'span')['Operating Cash Flow']
-        cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow')
+        cfObj.netCashByOperatingActivities = readDataFromPageSource(soup, 'Operating Cash Flow', True)
 
-        #cfObj.netCashForInvestingActivities = getRowValuesByText(soup, 'Investing Cash Flow', 'span')['Investing Cash Flow']
-        cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow')
+        cfObj.netCashForInvestingActivities = readDataFromPageSource(soup, 'Investing Cash Flow', True)
 
-        #cfObj.netCashForFinancingActivities = getRowValuesByText(soup, 'Financing Cash Flow', 'span')['Financing Cash Flow']
-        cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow')
+        cfObj.netCashForFinancingActivities = readDataFromPageSource(soup, 'Financing Cash Flow', True)
 
-        #cfObj.capitalExpenditures = getRowValuesByText(soup, 'Capital Expenditure', 'span')['Capital Expenditure']
-        cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure')
+        cfObj.capitalExpenditures = readDataFromPageSource(soup, 'Capital Expenditure', True)
 
-        #cfObj.freeCashFlow = getRowValuesByText(soup, 'Free Cash Flow', 'span')['Free Cash Flow']
-        cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow')
+        cfObj.freeCashFlow = readDataFromPageSource(soup, 'Free Cash Flow', True)
 
         cfObj.remove_ttm_from_cfObj()
         cleanCFObj(cfObj)

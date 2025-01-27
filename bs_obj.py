@@ -79,19 +79,14 @@ def readAnnualBSDataForTicker(ticker):
     soup = BeautifulSoup(response.content, "html.parser")
 
 
-
-    #bsObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-    bsObj.dates = readDataFromPageSource(soup, 'Breakdown')
+    bsObj.dates = readDataFromPageSource(soup, 'Breakdown', False)
     bsObj.dates = handleEmptyDateList(bsObj.dates)
 
-    #bsObj.totalAssets = getRowValuesByText(soup, 'Total Assets', 'span')['Total Assets']
-    bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets')
+    bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets', False)
 
-    #bsObj.totalLiabilities = getRowValuesByText(soup, 'Total Liabilities Net Minority Interest', 'span')['Total Liabilities Net Minority Interest']
-    bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest')
+    bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest', False)
 
-    #bsObj.totalEquity = getRowValuesByText(soup, 'Total Equity Gross Minority Interest', 'span')['Total Equity Gross Minority Interest']
-    bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest')
+    bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest', False)
 
     response = requests.get(bsObj.getStatisticsDataUrl(ticker), headers=getHeader())
     print('Balance Sheet Statistics Response Code for ' + ticker + ' is ' + str(response.status_code))
@@ -147,19 +142,14 @@ def readQuarterlyBSDataForTicker(ticker):
     soup = clickQuarterlyButton(page, bsObj.getBSYahooFinancialDataUrl(ticker))
 
     if soup:
-        #bsObj.dates = getRowValuesByText(soup, 'Breakdown', 'span')['Breakdown']
-        bsObj.dates = readDataFromPageSource(soup, 'Breakdown')
+        bsObj.dates = readDataFromPageSource(soup, 'Breakdown', True)
 
-        #bsObj.totalAssets = getRowValuesByText(soup, 'Total Assets', 'span')['Total Assets']
-        bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets')
+        bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets', True)
 
-        #bsObj.totalLiabilities = getRowValuesByText(soup, 'Total Liabilities Net Minority Interest', 'span')['Total Liabilities Net Minority Interest']
-        bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest')
+        bsObj.totalLiabilities = readDataFromPageSource(soup, 'Total Liabilities Net Minority Interest', True)
 
-       #bsObj.totalEquity = getRowValuesByText(soup, 'Total Equity Gross Minority Interest', 'span')['Total Equity Gross Minority Interest']
-        bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest')
+        bsObj.totalEquity = readDataFromPageSource(soup, 'Total Equity Gross Minority Interest', True)
 
-        #quitDriver()
         cleanBSObj(bsObj)
         bsObj.dates = handleEmptyDateList(bsObj.dates)
         printBSObj(bsObj)

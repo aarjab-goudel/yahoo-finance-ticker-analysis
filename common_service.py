@@ -141,12 +141,12 @@ def getPEGRatios(soup):
 
     label_td = soup.find("td", string="PEG Ratio (5yr expected)")
     if not label_td:
-        print(f'Error: Could not find label "{text_label}"')
+        print(f'Error: Could not find label "{label_td}"')
         return None
 
     row = label_td.find_parent("tr")
     if not row:
-        print(f'Error: Could not find row for label "{text_label}"')
+        print(f'Error: Could not find row for label "{label_td}"')
         return None
 
     tds = row.find_all("td")
@@ -181,11 +181,18 @@ def getRowByText(soup, text):
         return None
     return None
 
-def getRowValuesByText(soup, text):
+def getRowValuesByText(soup, text, is_quarterly):
     row_tag = getRowByText(soup, text)
+    print('-----')
+    print(row_tag)
+    print('------')
     if row_tag:
         val_arr = row_tag.strip().split()
-        row_arr = val_arr[-4:]
+        row_arr = None
+        if is_quarterly:
+            row_arr = val_arr[-5:]
+        else:
+            row_arr = val_arr[-4:]
         row_map = {text: row_arr}
         return row_map
     else:
@@ -209,7 +216,7 @@ def is_data_quarterly(soup):
     Otherwise, returns False.
     """
     # Grab the array of date strings for the 'Breakdown' row
-    dates = readDataFromPageSource(soup, 'Breakdown')  # e.g. ["9/30/2024", "6/30/2024", ...]
+    dates = readDataFromPageSource(soup, 'Breakdown', True)  # e.g. ["9/30/2024", "6/30/2024", ...]
 
     # Attempt to parse each date string into a datetime object
     parsed_dates = []
@@ -239,68 +246,89 @@ def is_data_quarterly(soup):
     # If all consecutive pairs are <= 100 days, it looks like quarterly data
     return True
 
-
 def clickQuarterlyButton(page, url):
-    final_soup = None
-    MAX_ATTEMPTS = 10
-    page.goto(url) 
-    for attemps in range(MAX_ATTEMPTS):
-        time.sleep(10)
-        try: 
+    """
+    Attempts up to MAX_ATTEMPTS times to:
+      1) goto(url) [domcontentloaded],
+      2) wait a bit, click the 'Quarterly' button,
+      3) wait a bit, parse the DOM,
+      4) verify we have quarterly data (is_data_quarterly(soup)).
 
-            # Click the Quarterly button
-            page.wait_for_selector("text=Quarterly")
+    If successful, returns the soup. Otherwise raises Exception.
+    """
+    MAX_ATTEMPTS = 5
+
+    for attempt in range(MAX_ATTEMPTS):
+        print(f"[Attempt {attempt+1}/{MAX_ATTEMPTS}] Loading {url}")
+
+        try:
+            # 1) Go to the page, only wait until DOM is parsed (less strict than networkidle)
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            
+            # 2) Sleep a bit to allow JS to run after DOMContentLoaded
+            time.sleep(5)
+
+            # 3) Wait for the 'Quarterly' button to appear, click it
+            page.wait_for_selector("text=Quarterly", timeout=60000)
             page.click("text=Quarterly")
 
-            # Wait for the page to update
+            # 4) Sleep again so the table can update to quarterly
             time.sleep(10)
 
+            # 5) Parse the HTML
             html = page.content()
             soup = BeautifulSoup(html, "lxml")
-            # Check if it is quarterly
+
+            # 6) Check if it's quarterly
             if is_data_quarterly(soup):
                 print(">> Verified: data is Quarterly!")
-                final_soup = soup
-                break
+                return soup
             else:
-                print(f">> Not Quarterly yet. Retrying... {attemps}")
-                time.sleep(3)
+                print(f">> Not Quarterly yet, retrying... attempt {attempt+1}")
+                time.sleep(5)  # short sleep before next attempt
+
         except Exception as e:
-            print('-------------------------------------------------')
-            print('EXCEPTION OCCURED IN CLICK QUARTERLY BUTTON !!!!')
+            print("-------------------------------------------------")
+            print(f"Exception in clickQuarterlyButton (attempt {attempt+1}):")
             print(e)
-            print('-------------------------------------------------')
-            return None
-    if not final_soup:
-        raise Exception("Could not get quarterly data after multiple attempts")
-    print("Clicked on Quarterly Button!!!!!")
-    return final_soup
+            print("-------------------------------------------------")
+            # short sleep, then retry from the top
+            time.sleep(5)
+
+    # If we exhausted all attempts
+    return None
 
 
 
 
 def clickOperatingExpense(page, url):
-    try:
-        page.goto(url)
+    MAX_ATTEMPTS = 5
+    for attempt in range(MAX_ATTEMPTS):
+        print(f"[Attempt {attempt+1}/{MAX_ATTEMPTS}] Loading {url}")
 
-        # Wait for the button to appear
-        page.wait_for_selector("button[aria-label='Operating Expense']")
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
-        # Click the Operating Expense button
-        page.click("button[aria-label='Operating Expense']")
+            time.sleep(5)
 
-        # Give some time for the page to update after clicking
-        time.sleep(5)
+            # Wait for the button to appear
+            page.wait_for_selector("button[aria-label='Operating Expense']", timeout=60000)
 
-        html = page.content()
-        soup = BeautifulSoup(html, "lxml")
-        return soup
-    except Exception as e:
-        print('-------------------------------------------------')
-        print('EXCEPTION OCCURED IN CLICK OPERATING EXPENSE!!!!')
-        print(e)
-        print('-------------------------------------------------')
-        return None
+            # Click the Operating Expense button
+            page.click("button[aria-label='Operating Expense']")
+
+            # Give some time for the page to update after clicking
+            time.sleep(5)
+
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
+            return soup
+        except Exception as e:
+            print('-------------------------------------------------')
+            print('EXCEPTION OCCURED IN CLICK OPERATING EXPENSE!!!!')
+            print(e)
+            print('-------------------------------------------------')
+            return None
 
 def cleanRowValues(dates, row_values):
     if not dates:
@@ -317,9 +345,9 @@ def handleEmptyDateList(dates):
         return dates
 
 
-def readDataFromPageSource(soup, label):
+def readDataFromPageSource(soup, label, is_quarterly):
     try:
-        row = getRowValuesByText(soup, label)[label]
+        row = getRowValuesByText(soup, label, is_quarterly)[label]
         return row
     except:
         error_row = ['0.000', '0.000', '0.000', '0.000']
@@ -366,8 +394,13 @@ def parse_numeric_value(value):
         return 0
     if 'ERROR' in value:
         return 'ERROR'
+    if not value or '':
+        return 'ERROR'
     value_no_letters = re.sub(r'[a-zA-Z]', '', value)
-    return float(value_no_letters)
+    try:
+        return float(value_no_letters)
+    except Exception as e:
+        return 'ERROR'
 
 def calculateEBITDAInterst(ebitda, interest):
     numeric_ebitda = parse_numeric_value(ebitda)
