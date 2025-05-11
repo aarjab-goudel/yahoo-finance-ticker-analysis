@@ -41,7 +41,9 @@ class ISObj:
         for item in num_list.copy():
             if not is_valid_number(item):
                 num_list.remove(item)
-
+        print('---------------THIS IS NUM_LIST --------------------')
+        print(num_list)
+        print('---------------THIS IS NUM_LIST --------------------')
         
 
 def cleanISObj(isObj):
@@ -190,5 +192,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    isObj = readQuarterlyISDataForTicker(args.ticker)
+    isObj = readAnnualISDataForTicker(args.ticker)
  
