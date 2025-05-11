@@ -183,26 +183,36 @@ def getRowByText(soup, text):
 
 def getRowValuesByText(soup, text, is_quarterly):
     row_tag = getRowByText(soup, text)
-    print('-----')
-    print(row_tag)
-    print('------')
-    if row_tag:
-        val_arr = row_tag.strip().split()
-        row_arr = None
-        if is_quarterly:
-            row_arr = val_arr[-5:]
-        else:
-            row_arr = val_arr[-4:]
-        row_map = {text: row_arr}
-        return row_map
-    else:
+    if not row_tag:
         return None
+
+    # Split the row text into an array of values
+    val_arr = row_tag.strip().split()
+
+    # Decide how many items we want to grab
+    target_len = 5 if is_quarterly else 4
+
+    # Slice the last N items
+    row_arr = val_arr[-target_len:]
+
+    # If row_arr is too short, prepend 'ERROR' until it's length N
+    while len(row_arr) < target_len:
+        row_arr.insert(0, 'ERROR')
+
+    # print(row_arr)
+
+    # Build and return the dictionary
+    row_map = {text: row_arr}
+    return row_map
+
 
 
 def is_valid_number(num):
     """
     Returns True if s is a number that can contain commas and a negative sign, False otherwise.
     """
+    if num == 'ERROR' or num == '--':
+        return True
     try:
         float(num.replace(',', ''))
         return True
@@ -334,6 +344,14 @@ def cleanRowValues(dates, row_values):
     if not dates:
         return ['0.000', '0.000', '0.000', '0.000']
     else:
+        for i in range(len(dates)):
+            if dates[i] == '--':
+                dates[i] = 'ERROR'
+
+        for j in range(len(dates)):
+            if dates[j] == '--':
+                dates[j] = 'ERROR'
+
         while len(dates) != len(row_values) and len(dates) > len(row_values):
             row_values.insert(0, '0.000')
     return row_values

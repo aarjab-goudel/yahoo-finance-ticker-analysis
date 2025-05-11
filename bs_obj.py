@@ -80,6 +80,7 @@ def readAnnualBSDataForTicker(ticker):
 
 
     bsObj.dates = readDataFromPageSource(soup, 'Breakdown', False)
+    
     bsObj.dates = handleEmptyDateList(bsObj.dates)
 
     bsObj.totalAssets = readDataFromPageSource(soup, 'Total Assets', False)
