@@ -199,7 +199,7 @@ def getRowValuesByText(soup, text, is_quarterly):
     while len(row_arr) < target_len:
         row_arr.insert(0, 'ERROR')
 
-    print(row_arr)
+    # print(row_arr)
 
     # Build and return the dictionary
     row_map = {text: row_arr}
