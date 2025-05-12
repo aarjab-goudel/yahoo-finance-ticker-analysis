@@ -242,12 +242,12 @@ def readAnnualBSDataWithYFinance(ticker, history_years=4):
 
     # 4) Pack into BSObj
     bsObj = BSObj(ticker)
-    bsObj.dates            = dates
-    bsObj.totalAssets      = scale_down_by_thousand(totalAssets) 
-    bsObj.totalLiabilities = scale_down_by_thousand(totalLiabilities) 
-    bsObj.totalEquity      = scale_down_by_thousand(totalEquity)
-    bsObj.totalCash        = scale_down_by_thousand(totalCash)
-    bsObj.totalDebt        = scale_down_by_thousand(totalDebt)
+    bsObj.dates            = normalize(dates, False)
+    bsObj.totalAssets      = normalize(totalAssets, False) 
+    bsObj.totalLiabilities = normalize(totalLiabilities, False) 
+    bsObj.totalEquity      = normalize(totalEquity, False)
+    bsObj.totalCash        = normalize(totalCash, False)
+    bsObj.totalDebt        = normalize(totalDebt, False)
     bsObj.currentRatio     = currentRatio
     bsObj.ev_ebitda        = ev_ebitda
     bsObj.ev_ebitda_dates  = ev_ebitda_dates
@@ -317,12 +317,12 @@ def readQuarterlyBSDataWithYFinance(ticker, history_quarters=5):
 
     # 6) pack into BSObj
     bsObj = BSObj(ticker)
-    bsObj.dates            = dates
-    bsObj.totalAssets      = scale_down_by_thousand(totalAssets) 
-    bsObj.totalLiabilities = scale_down_by_thousand(totalLiabilities) 
-    bsObj.totalEquity      = scale_down_by_thousand(totalEquity)
-    bsObj.totalCash        = scale_down_by_thousand(totalCash)
-    bsObj.totalDebt        = scale_down_by_thousand(totalDebt)
+    bsObj.dates            = normalize(dates, True)
+    bsObj.totalAssets      = normalize(totalAssets, True) 
+    bsObj.totalLiabilities = normalize(totalLiabilities, True) 
+    bsObj.totalEquity      = normalize(totalEquity, True)
+    bsObj.totalCash        = normalize(totalCash, True)
+    bsObj.totalDebt        = normalize(totalDebt, True)
     bsObj.currentRatio     = currentRatio
     bsObj.ev_ebitda        = ev_ebitda
     bsObj.ev_ebitda_dates  = ev_ebitda_dates

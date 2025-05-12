@@ -132,7 +132,7 @@ def readAnnualCFDataWithYFinance(ticker, history_years=4):
     df    = yf.Ticker(ticker).cashflow
 
     # 1) grab the up-to-N most recent period-ending dates
-    cfObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_years]
+    cfObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_years])
 
     # 2) helper to pull & clean a single row by its exact label
     def get_row_exact(label):
@@ -148,11 +148,11 @@ def readAnnualCFDataWithYFinance(ticker, history_years=4):
         )
         return series.tolist()[:history_years]
 
-    cfObj.freeCashFlow                   = scale_down_by_thousand(get_row_exact("Free Cash Flow"))
-    cfObj.netCashByOperatingActivities   = scale_down_by_thousand(get_row_exact("Operating Cash Flow"))
-    cfObj.netCashForInvestingActivities  = scale_down_by_thousand(get_row_exact("Investing Cash Flow"))
-    cfObj.netCashForFinancingActivities  = scale_down_by_thousand(get_row_exact("Financing Cash Flow"))
-    cfObj.capitalExpenditures            = scale_down_by_thousand(get_row_exact("Capital Expenditure"))
+    cfObj.freeCashFlow                   = normalize(get_row_exact("Free Cash Flow"))
+    cfObj.netCashByOperatingActivities   = normalize(get_row_exact("Operating Cash Flow"))
+    cfObj.netCashForInvestingActivities  = normalize(get_row_exact("Investing Cash Flow"))
+    cfObj.netCashForFinancingActivities  = normalize(get_row_exact("Financing Cash Flow"))
+    cfObj.capitalExpenditures            = normalize(get_row_exact("Capital Expenditure"))
 
     # debug prints (optional)
     print("dates:",                          cfObj.dates)
@@ -187,7 +187,7 @@ def readQuarterlyCFDataWithYFinance(ticker, history_quarters=5):
     df    = yf.Ticker(ticker).quarterly_cashflow
 
     # 1) grab the up-to-N most recent quarter-ending dates
-    cfObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters]
+    cfObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters])
 
     # 2) helper to pull & clean a single row by its exact label
     def get_row_exact(label):
@@ -204,11 +204,11 @@ def readQuarterlyCFDataWithYFinance(ticker, history_quarters=5):
         return series.tolist()[:history_quarters]
 
     # 3) populate each CFObj field
-    cfObj.freeCashFlow                   = scale_down_by_thousand(get_row_exact("Free Cash Flow"))
-    cfObj.netCashByOperatingActivities   = scale_down_by_thousand(get_row_exact("Operating Cash Flow"))
-    cfObj.netCashForInvestingActivities  = scale_down_by_thousand(get_row_exact("Investing Cash Flow"))
-    cfObj.netCashForFinancingActivities  = scale_down_by_thousand(get_row_exact("Financing Cash Flow"))
-    cfObj.capitalExpenditures            = scale_down_by_thousand(get_row_exact("Capital Expenditure"))
+    cfObj.freeCashFlow                   = normalize(get_row_exact("Free Cash Flow"))
+    cfObj.netCashByOperatingActivities   = normalize(get_row_exact("Operating Cash Flow"))
+    cfObj.netCashForInvestingActivities  = normalize(get_row_exact("Investing Cash Flow"))
+    cfObj.netCashForFinancingActivities  = normalize(get_row_exact("Financing Cash Flow"))
+    cfObj.capitalExpenditures            = normalize(get_row_exact("Capital Expenditure"))
 
     # debug prints (optional)
     print("quarterly dates:",                         cfObj.dates)

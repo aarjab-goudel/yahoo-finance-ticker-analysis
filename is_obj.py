@@ -196,30 +196,37 @@ def readAnnualISDataWithYFinance(ticker, history_years=4):
     df    = yf.Ticker(ticker).financials
 
     # 1) grab the up-to-N most recent period-ending dates
-    isObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_years]
+    isObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_years], False)
 
     # 2) helper to pull & clean a single row by its exact label
+    # 2) helper to pull & clean a single row by its exact label
     def get_row_exact(label):
-        if label not in df.index:
-            # debug: show you exactly what's available
-            raise KeyError(f"Row '{label}' not found; available rows are:\n{df.index.tolist()}")
-        series = (
-            df.loc[label]
-              .infer_objects(copy=False)
-              .fillna(0)
-              .astype(float)
-        )
-        return series.tolist()[:history_years]
+        """
+        Pull the exact row `label` from df, clean it and return
+        the most recent `history_quarters` values as a list of floats.
+        If the row isn’t found, return a list of "ERROR" strings.
+        """
+        try:
+            series = (
+                df.loc[label]
+                .infer_objects(copy=False)
+                .fillna(0)
+                .astype(float)
+            )
+            return series.tolist()[:history_years]
+        except KeyError:
+            # If the label doesn't exist, emit a consistent error placeholder list
+            return ["ERROR"] * history_years
 
     # 3) populate each field
-    isObj.revenue                 = scale_down_by_thousand(get_row_exact("Total Revenue"))
-    isObj.costOfRevenue           = scale_down_by_thousand(get_row_exact("Cost Of Revenue"))
-    isObj.grossProfit             = scale_down_by_thousand(get_row_exact("Gross Profit"))
-    isObj.operatingIncome         = scale_down_by_thousand(get_row_exact("Operating Income"))
-    isObj.netIncome               = scale_down_by_thousand(get_row_exact("Net Income"))
-    isObj.researchAndDevelopment  = scale_down_by_thousand(get_row_exact("Research And Development"))
-    isObj.ebitda                  = scale_down_by_thousand(get_row_exact("EBITDA"))
-    isObj.interestExpense         = scale_down_by_thousand(get_row_exact("Interest Expense"))
+    isObj.revenue                 = normalize(get_row_exact("Total Revenue"), False)
+    isObj.costOfRevenue           = normalize(get_row_exact("Cost Of Revenue"), False)
+    isObj.grossProfit             = normalize(get_row_exact("Gross Profit"), False)
+    isObj.operatingIncome         = normalize(get_row_exact("Operating Income"), False)
+    isObj.netIncome               = normalize(get_row_exact("Net Income"), False)
+    isObj.researchAndDevelopment  = normalize(get_row_exact("Research And Development"), False)
+    isObj.ebitda                  = normalize(get_row_exact("EBITDA"), False)
+    isObj.interestExpense         = normalize(get_row_exact("Interest Expense"), False)
 
     # (Optional) debug print
     print("dates:               ", isObj.dates)
@@ -252,31 +259,36 @@ def readQuarterlyISDataWithYFinance(ticker, history_quarters=5):
     df    = yf.Ticker(ticker).quarterly_financials
 
     # 1) grab the up-to-N most recent quarter-ending dates
-    isObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters]
+    isObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters], True)
 
     # 2) helper to pull & clean a single row by its exact label
     def get_row_exact(label):
-        if label not in df.index:
-            raise KeyError(
-                f"Row '{label}' not found; available rows are:\n{df.index.tolist()}"
+        """
+        Pull the exact row `label` from df, clean it and return
+        the most recent `history_quarters` values as a list of floats.
+        If the row isn’t found, return a list of "ERROR" strings.
+        """
+        try:
+            series = (
+                df.loc[label]
+                .infer_objects(copy=False)
+                .fillna(0)
+                .astype(float)
             )
-        return (
-            df.loc[label]
-              .infer_objects(copy=False)
-              .fillna(0)
-              .astype(float)
-              .tolist()[:history_quarters]
-        )
+            return series.tolist()[:history_quarters]
+        except KeyError:
+            # If the label doesn't exist, emit a consistent error placeholder list
+            return ["ERROR"] * history_quarters
 
     # 3) populate each field
-    isObj.revenue                 = scale_down_by_thousand(get_row_exact("Total Revenue"))
-    isObj.costOfRevenue           = scale_down_by_thousand(get_row_exact("Cost Of Revenue"))
-    isObj.grossProfit             = scale_down_by_thousand(get_row_exact("Gross Profit"))
-    isObj.operatingIncome         = scale_down_by_thousand(get_row_exact("Operating Income"))
-    isObj.netIncome               = scale_down_by_thousand(get_row_exact("Net Income"))
-    isObj.researchAndDevelopment  = scale_down_by_thousand(get_row_exact("Research And Development"))
-    isObj.ebitda                  = scale_down_by_thousand(get_row_exact("EBITDA"))
-    isObj.interestExpense         = scale_down_by_thousand(get_row_exact("Interest Expense"))
+    isObj.revenue                 = normalize(get_row_exact("Total Revenue"), True)
+    isObj.costOfRevenue           = normalize(get_row_exact("Cost Of Revenue"), True)
+    isObj.grossProfit             = normalize(get_row_exact("Gross Profit"), True)
+    isObj.operatingIncome         = normalize(get_row_exact("Operating Income"), True)
+    isObj.netIncome               = normalize(get_row_exact("Net Income"), True)
+    isObj.researchAndDevelopment  = normalize(get_row_exact("Research And Development"), True)
+    isObj.ebitda                  = normalize(get_row_exact("EBITDA"), True)
+    isObj.interestExpense         = normalize(get_row_exact("Interest Expense"), True)
 
     # (Optional) debug print
     print("quarterly dates:           ", isObj.dates)

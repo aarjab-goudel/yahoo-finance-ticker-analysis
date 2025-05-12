@@ -239,6 +239,8 @@ def writeToBalanceSheet(bsSheet, bsObjs, stockObjs, tickers, year):
         bsSheetDataContent = [stockObj.fullName, stockObj.ticker, stockObj.sector, stockObj.industry, bsObj.dates[year], stockObj.currency, bsObj.totalEquity[year], '0.000', bsObj.totalAssets[year], bsObj.totalLiabilities[year], bsObj.totalCash[year], bsObj.totalDebt[year], bsObj.currentRatio, stockObj.ticker ]
         #bsSheetDataContent = [stockObj.fullName, stockObj.ticker, stockObj.sector, stockObj.industry, bsObj.dates[year], 'USD', '0.000', '0.000', bsObj.totalEquity[year], '0.000', '0.000', bsObj.totalAssets[year], bsObj.totalLiabilities[year], bsObj.netTangibleAssets[year], bsObj.shortTermDebt[year], bsObj.longTermDebt[year], '0.000', '0.000', stockObj.ticker]
         for content in bsSheetDataContent:
+            print(content)
+            print('???????????')
             bsSheet.write(row, column, content)
             column += 1
         column = 0

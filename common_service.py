@@ -8,6 +8,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from playwright.sync_api import sync_playwright
+from typing import List, Union
+import math
 from datetime import datetime
 import time
 import requests
@@ -17,7 +19,7 @@ import re
 _playwright = None
 _browser = None
 _page = None
-
+Number = Union[int, float]
 def open_browser():
     """
     Opens the Playwright browser exactly once and returns a reference to the page.
@@ -477,21 +479,41 @@ def stripAlphabetFromNum(val):
     allowed_chars = set("0123456789-.,")
     return ''.join(ch for ch in val if ch in allowed_chars)
 
-def scale_down_by_thousand(values: list[float]) -> list[str]:
+def normalize(values: List[Number], pad_to_five: bool = False) -> List[str]:
     """
     Divide each float in `values` by 1 000 and return the resulting list
     of strings with comma separators. Drops “.0” for whole numbers,
     otherwise shows two decimal places.
+    If an entry isn’t a real number (or is NaN), we emit "ERROR" for that slot.
+    If the final list has fewer than 4 items, we pad it with "ERROR" up to length 4.
     """
-    formatted = []
+    formatted: List[str] = []
+
     for x in values:
+        # 1) check it's the right type
+        if not isinstance(x, (int, float)):
+            formatted.append("ERROR")
+            continue
+
+        # 2) check it's not NaN
+        if isinstance(x, float) and math.isnan(x):
+            formatted.append("ERROR")
+            continue
+
+        # 3) safe to scale
         thousands = x / 1_000
         if thousands.is_integer():
-            # e.g. 391035.0 → "391,035"
             formatted.append(f"{int(thousands):,}")
         else:
-            # e.g. 391035.75 → "391,035.75"
             formatted.append(f"{thousands:,.2f}")
+
+    # 4) decide how many entries we need
+    target_length = 5 if pad_to_five else 4
+
+    # 5) pad with "ERROR" until we hit the target
+    while len(formatted) < target_length:
+        formatted.append("ERROR")
+
     return formatted
 
 
