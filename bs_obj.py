@@ -242,7 +242,7 @@ def readAnnualBSDataWithYFinance(ticker, history_years=4):
 
     # 4) Pack into BSObj
     bsObj = BSObj(ticker)
-    bsObj.dates            = normalize(dates, False)
+    bsObj.dates            = normalize_dates(dates, False)
     bsObj.totalAssets      = normalize(totalAssets, False) 
     bsObj.totalLiabilities = normalize(totalLiabilities, False) 
     bsObj.totalEquity      = normalize(totalEquity, False)
@@ -317,7 +317,7 @@ def readQuarterlyBSDataWithYFinance(ticker, history_quarters=5):
 
     # 6) pack into BSObj
     bsObj = BSObj(ticker)
-    bsObj.dates            = normalize(dates, True)
+    bsObj.dates            = normalize_dates(dates, True)
     bsObj.totalAssets      = normalize(totalAssets, True) 
     bsObj.totalLiabilities = normalize(totalLiabilities, True) 
     bsObj.totalEquity      = normalize(totalEquity, True)

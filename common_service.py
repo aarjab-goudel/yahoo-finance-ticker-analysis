@@ -479,6 +479,15 @@ def stripAlphabetFromNum(val):
     allowed_chars = set("0123456789-.,")
     return ''.join(ch for ch in val if ch in allowed_chars)
 
+def normalize_dates(values, pad_to_five):
+    target_length = 5 if pad_to_five else 4
+
+    # 5) pad with "ERROR" until we hit the target
+    while len(values) < target_length:
+        values.append("ERROR")
+
+    return values
+
 def normalize(values: List[Number], pad_to_five: bool = False) -> List[str]:
     """
     Divide each float in `values` by 1 000 and return the resulting list

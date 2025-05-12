@@ -196,7 +196,7 @@ def readAnnualISDataWithYFinance(ticker, history_years=4):
     df    = yf.Ticker(ticker).financials
 
     # 1) grab the up-to-N most recent period-ending dates
-    isObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_years], False)
+    isObj.dates = normalize_dates([c.strftime("%Y-%m-%d") for c in df.columns][:history_years], False)
 
     # 2) helper to pull & clean a single row by its exact label
     # 2) helper to pull & clean a single row by its exact label
@@ -259,7 +259,7 @@ def readQuarterlyISDataWithYFinance(ticker, history_quarters=5):
     df    = yf.Ticker(ticker).quarterly_financials
 
     # 1) grab the up-to-N most recent quarter-ending dates
-    isObj.dates = normalize([c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters], True)
+    isObj.dates = normalize_dates([c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters], True)
 
     # 2) helper to pull & clean a single row by its exact label
     def get_row_exact(label):
