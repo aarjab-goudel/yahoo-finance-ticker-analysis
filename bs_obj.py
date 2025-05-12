@@ -4,6 +4,7 @@ import math
 import requests
 from bs4 import BeautifulSoup
 from common_service import *
+import yfinance as yf
 class BSObj:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -73,8 +74,13 @@ def cleanBSObj(bsObj):
 
 def readAnnualBSDataForTicker(ticker):
     bsObj = BSObj(ticker)
-    
+    url = bsObj.getBSYahooFinancialDataUrl(ticker)
     response = requests.get(bsObj.getBSYahooFinancialDataUrl(ticker), headers=getHeader())
+    print("Fetching:", url)
+    print("→ Status code:", response.status_code)
+    print("→ Headers:", response.headers)
+    print("→ History:", response.history)       # any redirects?
+    print("→ Body snippet:", response.text[:500])
     print('Balance Sheet Response Code for ' + ticker + ' is ' + str(response.status_code))
     soup = BeautifulSoup(response.content, "html.parser")
 
@@ -97,15 +103,28 @@ def readAnnualBSDataForTicker(ticker):
         bsObj.totalCash = getRowValueFromStatisticsRow(soup, 'Total Cash')['Total Cash']
         bsObj.totalDebt = getRowValueFromStatisticsRow(soup, 'Total Debt')['Total Debt']
         bsObj.currentRatio = getRowValueFromStatisticsRow(soup, 'Current Ratio')['Current Ratio']
+
         ev_ebitda = getStatisticsTableByText(soup, "Enterprise Value/EBITDA")
         ev_ebitda_dates = getStatisticsDatesByText(soup, "Current")
         peg_ratios = getPEGRatios(soup)
-        peg_ratios.pop(0)
-        ev_ebitda.pop(0)
-        ev_ebitda_dates.pop(0)
-        bsObj.ev_ebitda = ev_ebitda
-        bsObj.ev_ebitda_dates = ev_ebitda_dates
-        bsObj.peg_ratios = peg_ratios
+
+        if ev_ebitda:
+            ev_ebitda.pop(0)
+            bsObj.ev_ebitda = ev_ebitda
+        else:
+            bsObj.ev_ebitda = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
+
+        if ev_ebitda_dates:
+            ev_ebitda_dates.pop(0)
+            bsObj.ev_ebitda_dates = ev_ebitda_dates
+        else:
+            bsObj.ev_ebitda_dates = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
+
+        if peg_ratios:
+            peg_ratios.pop(0)
+            bsObj.peg_ratios = peg_ratios
+        else:
+            bsObj.peg_ratios = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
 
 
     except Exception as e:
@@ -131,12 +150,25 @@ def readQuarterlyBSDataForTicker(ticker):
         ev_ebitda = getStatisticsTableByText(statistics_soup, "Enterprise Value/EBITDA")
         ev_ebitda_dates = getStatisticsDatesByText(statistics_soup, "Current")
         peg_ratios = getPEGRatios(statistics_soup)
-        peg_ratios.pop(0)
-        ev_ebitda.pop(0)
-        ev_ebitda_dates.pop(0)
-        bsObj.ev_ebitda = ev_ebitda
-        bsObj.ev_ebitda_dates = ev_ebitda_dates
-        bsObj.peg_ratios = peg_ratios
+
+        if ev_ebitda:
+            ev_ebitda.pop(0)
+            bsObj.ev_ebitda = ev_ebitda
+        else:
+            bsObj.ev_ebitda = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
+
+        if ev_ebitda_dates:
+            ev_ebitda_dates.pop(0)
+            bsObj.ev_ebitda_dates = ev_ebitda_dates
+        else:
+            bsObj.ev_ebitda_dates = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
+
+        if peg_ratios:
+            peg_ratios.pop(0)
+            bsObj.peg_ratios = peg_ratios
+        else:
+            bsObj.peg_ratios = ['ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR']
+        
 
 
 
@@ -158,6 +190,160 @@ def readQuarterlyBSDataForTicker(ticker):
     else:
         return createErrorBSObj(ticker)
 
+
+
+def readAnnualBSDataWithYFinance(ticker, history_years=4):
+    """
+    Fetch annual BS history for `ticker` via yfinance only.
+    - dates:              list of YYYY-MM-DD (up to history_years)
+    - totalAssets:        list of floats
+    - totalLiabilities:   list of floats (Net Minority Interest)
+    - totalEquity:        list of floats (Gross Minority Interest)
+    - totalCash:          list of floats (Cash And Cash Equivalents)
+    - totalDebt:          list of floats (Short + Long Term Debt)
+    - currentRatio:       string
+    - ev_ebitda:          list with single float [current EV/EBITDA]
+    - ev_ebitda_dates:    ["Current"]
+    - peg_ratios:         list with single float [current PEG]
+    """
+    t  = yf.Ticker(ticker)
+    bs = t.balance_sheet
+
+    # 1) Period-ending dates
+    dates = [c.strftime("%Y-%m-%d") for c in bs.columns][:history_years]
+
+    # 2) Helper to pull & clean each row
+    def get_row(name):
+        if name in bs.index:
+            series = bs.loc[name].infer_objects(copy=False).fillna(0)
+            return series.astype(float).tolist()[:history_years]
+        return [0.0] * len(dates)
+
+    totalAssets      = get_row("Total Assets")
+    totalLiabilities = get_row("Total Liabilities Net Minority Interest")
+    totalEquity      = get_row("Total Equity Gross Minority Interest")
+    totalCash        = get_row("Cash And Cash Equivalents")
+
+    # build totalDebt = short-term + long-term
+    short_debt = get_row("Short Long Term Debt")
+    long_debt  = get_row("Long Term Debt")
+    totalDebt  = [s + l for s, l in zip(short_debt, long_debt)]
+
+    # 3) Ratios from t.info()
+    info        = t.info or {}
+    currentRatio= str(info.get("currentRatio", 0))
+
+    ev_value    = info.get("enterpriseToEbitda", None)
+    peg_value   = info.get("pegRatio",         None)
+
+    ev_ebitda      = [ev_value] if ev_value is not None else []
+    ev_ebitda_dates= ["Current"] if ev_value is not None else []
+    peg_ratios     = [peg_value] if peg_value is not None else []
+
+    # 4) Pack into BSObj
+    bsObj = BSObj(ticker)
+    bsObj.dates            = dates
+    bsObj.totalAssets      = scale_down_by_thousand(totalAssets) 
+    bsObj.totalLiabilities = scale_down_by_thousand(totalLiabilities) 
+    bsObj.totalEquity      = scale_down_by_thousand(totalEquity)
+    bsObj.totalCash        = scale_down_by_thousand(totalCash)
+    bsObj.totalDebt        = scale_down_by_thousand(totalDebt)
+    bsObj.currentRatio     = currentRatio
+    bsObj.ev_ebitda        = ev_ebitda
+    bsObj.ev_ebitda_dates  = ev_ebitda_dates
+    bsObj.peg_ratios       = peg_ratios
+
+    print("dates:",            bsObj.dates)
+    print("totalAssets:",      bsObj.totalAssets)
+    print("totalLiabilities:", bsObj.totalLiabilities)
+    print("totalEquity:",      bsObj.totalEquity)
+    print("totalCash:",        bsObj.totalCash)
+    print("totalDebt:",        bsObj.totalDebt)
+    print("currentRatio:",     bsObj.currentRatio)
+    print("ev_ebitda:",        bsObj.ev_ebitda)
+    print("ev_ebitda_dates:",  bsObj.ev_ebitda_dates)
+    print("peg_ratios:",       bsObj.peg_ratios)
+
+    return bsObj
+
+
+def readQuarterlyBSDataWithYFinance(ticker, history_quarters=5):
+    """
+    Fetch quarterly BS history for `ticker` via yfinance only.
+    - dates:              list of YYYY-MM-DD (up to history_quarters most recent)
+    - totalAssets:        list of floats
+    - totalLiabilities:   list of floats (Net Minority Interest)
+    - totalEquity:        list of floats (Gross Minority Interest)
+    - totalCash:          list of floats (Cash And Cash Equivalents)
+    - totalDebt:          list of floats (Short + Long Term Debt)
+    - currentRatio:       string (from t.info)
+    - ev_ebitda:          list with single float [current EV/EBITDA]
+    - ev_ebitda_dates:    ["Current"]
+    - peg_ratios:         list with single float [current PEG]
+    """
+    t   = yf.Ticker(ticker)
+    qbs = t.quarterly_balance_sheet
+
+    # 1) grab the N most recent quarter-end dates
+    dates = [c.strftime("%Y-%m-%d") for c in qbs.columns][:history_quarters]
+
+    # 2) safe row-getter for the quarterly frame
+    def get_row(name):
+        if name in qbs.index:
+            s = qbs.loc[name].infer_objects(copy=False).fillna(0)
+            return s.astype(float).tolist()[:history_quarters]
+        return [0.0] * len(dates)
+
+    # 3) pull your core rows
+    totalAssets      = get_row("Total Assets")
+    totalLiabilities = get_row("Total Liabilities Net Minority Interest")
+    totalEquity      = get_row("Total Equity Gross Minority Interest")
+    totalCash        = get_row("Cash And Cash Equivalents")
+
+    # 4) build debt = short + long
+    short_debt = get_row("Short Long Term Debt")
+    long_debt  = get_row("Long Term Debt")
+    totalDebt  = [s + l for s, l in zip(short_debt, long_debt)]
+
+    # 5) ratios/current values from info()
+    info         = t.info or {}
+    currentRatio = str(info.get("currentRatio", 0))
+    ev_value     = info.get("enterpriseToEbitda", None)
+    peg_value    = info.get("pegRatio",         None)
+
+    ev_ebitda       = [ev_value] if ev_value is not None else []
+    ev_ebitda_dates = ["Current"] if ev_value is not None else []
+    peg_ratios      = [peg_value] if peg_value is not None else []
+
+    # 6) pack into BSObj
+    bsObj = BSObj(ticker)
+    bsObj.dates            = dates
+    bsObj.totalAssets      = scale_down_by_thousand(totalAssets) 
+    bsObj.totalLiabilities = scale_down_by_thousand(totalLiabilities) 
+    bsObj.totalEquity      = scale_down_by_thousand(totalEquity)
+    bsObj.totalCash        = scale_down_by_thousand(totalCash)
+    bsObj.totalDebt        = scale_down_by_thousand(totalDebt)
+    bsObj.currentRatio     = currentRatio
+    bsObj.ev_ebitda        = ev_ebitda
+    bsObj.ev_ebitda_dates  = ev_ebitda_dates
+    bsObj.peg_ratios       = peg_ratios
+
+    print("dates:",            bsObj.dates)
+    print("totalAssets:",      bsObj.totalAssets)
+    print("totalLiabilities:", bsObj.totalLiabilities)
+    print("totalEquity:",      bsObj.totalEquity)
+    print("totalCash:",        bsObj.totalCash)
+    print("totalDebt:",        bsObj.totalDebt)
+    print("currentRatio:",     bsObj.currentRatio)
+    print("ev_ebitda:",        bsObj.ev_ebitda)
+    print("ev_ebitda_dates:",  bsObj.ev_ebitda_dates)
+    print("peg_ratios:",       bsObj.peg_ratios)
+
+    return bsObj
+
+
+
+
 if __name__ == "__main__":
     import argparse
     
@@ -167,6 +353,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    bsObj = readAnnualBSDataForTicker(args.ticker)
+    quarterlyBSObj = readQuarterlyBSDataWithYFinance(args.ticker)
+    annualBSObj = readAnnualBSDataWithYFinance(args.ticker)
+
 
 

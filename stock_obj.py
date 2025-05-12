@@ -2,6 +2,7 @@
 from datetime import datetime
 from common_service import *
 import requests
+import yfinance as yf
 class StockObj:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -107,6 +108,49 @@ def readCommonStockData(ticker):
         stockObj.currency = 'ERROR'
         return stockObj
 
+def readCommonStockDataWithYFinance(ticker):
+    """
+    Fetch common stock metadata for `ticker` via yfinance only.
+    Populates StockObj with:
+      - industry
+      - sector
+      - peRatio         (trailing PE)
+      - dividend        (forward dividend & yield)
+      - fullName        (longName)
+      - currency
+    """
+    stockObj = StockObj(ticker)
+    t        = yf.Ticker(ticker)
+    info     = t.info or {}
+
+    # Industry & Sector
+    stockObj.industry = info.get("industry", "")
+    stockObj.sector   = info.get("sector", "")
+
+    # PE Ratio (Trailing)
+    pe = info.get("trailingPE")
+    stockObj.peRatio = str(pe) if pe is not None else ""
+
+    # Forward Dividend & Yield
+    drate  = info.get("dividendRate")
+    dyield = info.get("dividendYield")
+    if drate is not None and dyield is not None:
+        stockObj.dividend = f"{drate} ({dyield * 100:.2f}%)"
+    elif drate is not None:
+        stockObj.dividend = str(drate)
+    else:
+        stockObj.dividend = ""
+
+    # Full Name
+    stockObj.fullName = info.get("longName", "")
+
+    # Currency
+    stockObj.currency = info.get("currency", "")
+
+    # Print out all fields
+    printStockObj(stockObj)
+    return stockObj
+
 if __name__ == "__main__":
     import argparse
     
@@ -116,4 +160,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    bsObj = readCommonStockData(args.ticker)
+    bsObj = readCommonStockDataWithYFinance(args.ticker)

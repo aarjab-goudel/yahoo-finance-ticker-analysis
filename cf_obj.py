@@ -4,7 +4,7 @@ import math
 from common_service import *
 from bs4 import BeautifulSoup
 import requests
-
+import yfinance as yf
 class CFObj:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -116,6 +116,110 @@ def readQuarterlyCFDataForTicker(ticker):
         return cfObj
     else:
         return createErrorCFObj(ticker)
+    
+
+def readAnnualCFDataWithYFinance(ticker, history_years=4):
+    """
+    Fetch annual cash‐flow history for `ticker` via yfinance only.
+    Uses these exact row labels from df.index:
+      - Free Cash Flow
+      - Operating Cash Flow
+      - Investing Cash Flow
+      - Financing Cash Flow
+      - Capital Expenditure
+    """
+    cfObj = CFObj(ticker)
+    df    = yf.Ticker(ticker).cashflow
+
+    # 1) grab the up-to-N most recent period-ending dates
+    cfObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_years]
+
+    # 2) helper to pull & clean a single row by its exact label
+    def get_row_exact(label):
+        if label not in df.index:
+            raise KeyError(
+                f"Row '{label}' not found; available rows: {df.index.tolist()}"
+            )
+        series = (
+            df.loc[label]
+              .infer_objects(copy=False)
+              .fillna(0)
+              .astype(float)
+        )
+        return series.tolist()[:history_years]
+
+    cfObj.freeCashFlow                   = scale_down_by_thousand(get_row_exact("Free Cash Flow"))
+    cfObj.netCashByOperatingActivities   = scale_down_by_thousand(get_row_exact("Operating Cash Flow"))
+    cfObj.netCashForInvestingActivities  = scale_down_by_thousand(get_row_exact("Investing Cash Flow"))
+    cfObj.netCashForFinancingActivities  = scale_down_by_thousand(get_row_exact("Financing Cash Flow"))
+    cfObj.capitalExpenditures            = scale_down_by_thousand(get_row_exact("Capital Expenditure"))
+
+    # debug prints (optional)
+    print("dates:",                          cfObj.dates)
+    print("freeCashFlow:",                   cfObj.freeCashFlow)
+    print("netCashByOperatingActivities:",   cfObj.netCashByOperatingActivities)
+    print("netCashForInvestingActivities:",  cfObj.netCashForInvestingActivities)
+    print("netCashForFinancingActivities:",  cfObj.netCashForFinancingActivities)
+    print("capitalExpenditures:",            cfObj.capitalExpenditures)
+
+    return cfObj
+
+
+def readQuarterlyCFDataWithYFinance(ticker, history_quarters=5):
+    """
+    Fetch quarterly cash‐flow history for `ticker` via yfinance only.
+    Uses these exact row labels from df.index:
+      - Free Cash Flow
+      - Operating Cash Flow
+      - Investing Cash Flow
+      - Financing Cash Flow
+      - Capital Expenditure
+
+    Returns a CFObj with:
+      - dates (last N quarter-end YYYY-MM-DD)
+      - freeCashFlow
+      - netCashByOperatingActivities
+      - netCashForInvestingActivities
+      - netCashForFinancingActivities
+      - capitalExpenditures
+    """
+    cfObj = CFObj(ticker)
+    df    = yf.Ticker(ticker).quarterly_cashflow
+
+    # 1) grab the up-to-N most recent quarter-ending dates
+    cfObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters]
+
+    # 2) helper to pull & clean a single row by its exact label
+    def get_row_exact(label):
+        if label not in df.index:
+            raise KeyError(
+                f"Row '{label}' not found; available rows: {df.index.tolist()}"
+            )
+        series = (
+            df.loc[label]
+              .infer_objects(copy=False)
+              .fillna(0)
+              .astype(float)
+        )
+        return series.tolist()[:history_quarters]
+
+    # 3) populate each CFObj field
+    cfObj.freeCashFlow                   = scale_down_by_thousand(get_row_exact("Free Cash Flow"))
+    cfObj.netCashByOperatingActivities   = scale_down_by_thousand(get_row_exact("Operating Cash Flow"))
+    cfObj.netCashForInvestingActivities  = scale_down_by_thousand(get_row_exact("Investing Cash Flow"))
+    cfObj.netCashForFinancingActivities  = scale_down_by_thousand(get_row_exact("Financing Cash Flow"))
+    cfObj.capitalExpenditures            = scale_down_by_thousand(get_row_exact("Capital Expenditure"))
+
+    # debug prints (optional)
+    print("quarterly dates:",                         cfObj.dates)
+    print("freeCashFlow:",                            cfObj.freeCashFlow)
+    print("netCashByOperatingActivities:",            cfObj.netCashByOperatingActivities)
+    print("netCashForInvestingActivities:",           cfObj.netCashForInvestingActivities)
+    print("netCashForFinancingActivities:",           cfObj.netCashForFinancingActivities)
+    print("capitalExpenditures:",                     cfObj.capitalExpenditures)
+
+    return cfObj
+
 
 
 if __name__ == "__main__":
@@ -127,7 +231,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    cfObj = readQuarterlyCFDataForTicker(args.ticker)
+    quarterlyCFObj = readQuarterlyCFDataWithYFinance(args.ticker)
+    annualCFObj = readAnnualCFDataWithYFinance(args.ticker)
 
 
 

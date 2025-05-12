@@ -4,7 +4,7 @@ import math
 from common_service import *
 from bs4 import BeautifulSoup
 import requests
-
+import yfinance as yf
 class ISObj:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -178,7 +178,118 @@ def readQuarterlyISDataForTicker(ticker):
         return isObj
     else:
         return createErrorISObj(ticker)
+    
+def readAnnualISDataWithYFinance(ticker, history_years=4):
+    """
+    Fetch annual income‐statement history for `ticker` via yfinance only.
+    Populates ISObj with exactly these row labels from df.index:
+      - Total Revenue
+      - Cost Of Revenue
+      - Gross Profit
+      - Operating Income
+      - Net Income
+      - Research & Development
+      - EBITDA
+      - Interest Expense
+    """
+    isObj = ISObj(ticker)
+    df    = yf.Ticker(ticker).financials
 
+    # 1) grab the up-to-N most recent period-ending dates
+    isObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_years]
+
+    # 2) helper to pull & clean a single row by its exact label
+    def get_row_exact(label):
+        if label not in df.index:
+            # debug: show you exactly what's available
+            raise KeyError(f"Row '{label}' not found; available rows are:\n{df.index.tolist()}")
+        series = (
+            df.loc[label]
+              .infer_objects(copy=False)
+              .fillna(0)
+              .astype(float)
+        )
+        return series.tolist()[:history_years]
+
+    # 3) populate each field
+    isObj.revenue                 = scale_down_by_thousand(get_row_exact("Total Revenue"))
+    isObj.costOfRevenue           = scale_down_by_thousand(get_row_exact("Cost Of Revenue"))
+    isObj.grossProfit             = scale_down_by_thousand(get_row_exact("Gross Profit"))
+    isObj.operatingIncome         = scale_down_by_thousand(get_row_exact("Operating Income"))
+    isObj.netIncome               = scale_down_by_thousand(get_row_exact("Net Income"))
+    isObj.researchAndDevelopment  = scale_down_by_thousand(get_row_exact("Research And Development"))
+    isObj.ebitda                  = scale_down_by_thousand(get_row_exact("EBITDA"))
+    isObj.interestExpense         = scale_down_by_thousand(get_row_exact("Interest Expense"))
+
+    # (Optional) debug print
+    print("dates:               ", isObj.dates)
+    print("revenue:             ", isObj.revenue)
+    print("costOfRevenue:       ", isObj.costOfRevenue)
+    print("grossProfit:         ", isObj.grossProfit)
+    print("operatingIncome:     ", isObj.operatingIncome)
+    print("netIncome:           ", isObj.netIncome)
+    print("researchAndDev:      ", isObj.researchAndDevelopment)
+    print("ebitda:              ", isObj.ebitda)
+    print("interestExpense:     ", isObj.interestExpense)
+
+    return isObj
+
+
+def readQuarterlyISDataWithYFinance(ticker, history_quarters=5):
+    """
+    Fetch quarterly income‐statement history for `ticker` via yfinance only.
+    Populates ISObj with exactly these row labels from df.index:
+      - Total Revenue
+      - Cost Of Revenue
+      - Gross Profit
+      - Operating Income
+      - Net Income
+      - Research And Development
+      - EBITDA
+      - Interest Expense
+    """
+    isObj = ISObj(ticker)
+    df    = yf.Ticker(ticker).quarterly_financials
+
+    # 1) grab the up-to-N most recent quarter-ending dates
+    isObj.dates = [c.strftime("%Y-%m-%d") for c in df.columns][:history_quarters]
+
+    # 2) helper to pull & clean a single row by its exact label
+    def get_row_exact(label):
+        if label not in df.index:
+            raise KeyError(
+                f"Row '{label}' not found; available rows are:\n{df.index.tolist()}"
+            )
+        return (
+            df.loc[label]
+              .infer_objects(copy=False)
+              .fillna(0)
+              .astype(float)
+              .tolist()[:history_quarters]
+        )
+
+    # 3) populate each field
+    isObj.revenue                 = scale_down_by_thousand(get_row_exact("Total Revenue"))
+    isObj.costOfRevenue           = scale_down_by_thousand(get_row_exact("Cost Of Revenue"))
+    isObj.grossProfit             = scale_down_by_thousand(get_row_exact("Gross Profit"))
+    isObj.operatingIncome         = scale_down_by_thousand(get_row_exact("Operating Income"))
+    isObj.netIncome               = scale_down_by_thousand(get_row_exact("Net Income"))
+    isObj.researchAndDevelopment  = scale_down_by_thousand(get_row_exact("Research And Development"))
+    isObj.ebitda                  = scale_down_by_thousand(get_row_exact("EBITDA"))
+    isObj.interestExpense         = scale_down_by_thousand(get_row_exact("Interest Expense"))
+
+    # (Optional) debug print
+    print("quarterly dates:           ", isObj.dates)
+    print("quarterly revenue:         ", isObj.revenue)
+    print("quarterly costOfRevenue:   ", isObj.costOfRevenue)
+    print("quarterly grossProfit:     ", isObj.grossProfit)
+    print("quarterly operatingIncome: ", isObj.operatingIncome)
+    print("quarterly netIncome:       ", isObj.netIncome)
+    print("quarterly researchAndDev:  ", isObj.researchAndDevelopment)
+    print("quarterly ebitda:          ", isObj.ebitda)
+    print("quarterly interestExpense: ", isObj.interestExpense)
+
+    return isObj
 
 if __name__ == "__main__":
     import argparse
@@ -189,5 +300,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    isObj = readAnnualISDataForTicker(args.ticker)
+    quarterlyISObj = readQuarterlyISDataWithYFinance(args.ticker)
+    annualISObj = readAnnualISDataWithYFinance(args.ticker)
+
  

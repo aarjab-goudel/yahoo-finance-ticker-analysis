@@ -4,7 +4,7 @@ import urllib.request as ur
 import requests
 from urllib.request import Request, urlopen
 from common_service import *
-
+import yfinance as yf
 class FutureStockObj:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -34,6 +34,59 @@ def printFutureStockObj(futureStockObj):
     print(futureStockObj.currentYearRev)
     print('Next Year Revenue')
     print(futureStockObj.nextYearRev)
+
+
+def readFutureStockDataWithYFinance(ticker):
+    """
+    Fetch forward-looking EPS and revenue estimates for `ticker` via yfinance only,
+    pulling the 'avg' column at the '0y' and '+1y' rows:
+
+      - '0y'  = current-year
+      - '+1y' = next-year
+    """
+    fso = FutureStockObj(ticker)
+    t   = yf.Ticker(ticker)
+
+    # pull the two tables
+    ee = t.earnings_estimate    # EPS estimates
+    re = t.revenue_estimate     # revenue estimates
+
+    # debug
+    print("[DEBUG] earnings_estimate index:", ee.index.tolist())
+    print("[DEBUG] earnings_estimate columns:", ee.columns.tolist())
+    print("[DEBUG] revenue_estimate index:", re.index.tolist())
+    print("[DEBUG] revenue_estimate columns:", re.columns.tolist())
+
+    # the consensus column
+    col = "avg"
+
+    # rows for current vs next year
+    curr_row = "0y"
+    next_row = "+1y"
+
+    # sanity checks
+    for df, name in [(ee, "EPS"), (re, "Revenue")]:
+        if curr_row not in df.index or next_row not in df.index:
+            raise KeyError(f"Could not find rows {curr_row!r} / {next_row!r} in {name} estimate index {df.index.tolist()}")
+        if col not in df.columns:
+            raise KeyError(f"Could not find column {col!r} in {name} estimate columns {df.columns.tolist()}")
+
+    # friendly labels
+    fso.currentYear = "Current Year"
+    fso.nextYear    = "Next Year"
+
+    # extract
+    fso.currentYearEPS = str(ee.at[curr_row, col])
+    fso.nextYearEPS    = str(ee.at[next_row, col])
+    fso.currentYearRev = str(re.at[curr_row, col] / 1_000)
+    fso.nextYearRev    = str(re.at[next_row, col] / 1_000)
+
+    # final debug
+    print(f"[DEBUG] {ticker} → EPS avg: 0y={fso.currentYearEPS}, +1y={fso.nextYearEPS}")
+    print(f"[DEBUG] {ticker} → Rev avg: 0y={fso.currentYearRev}, +1y={fso.nextYearRev}")
+
+    return fso
+
 
 def readFutureStockData(ticker):
     futureStockObj = FutureStockObj(ticker)
@@ -92,7 +145,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Use the ticker passed from the command line to read the annual BS data
-    bsObj = readFutureStockData(args.ticker)
+    bsObj = readFutureStockDataWithYFinance(args.ticker)
         
     
 

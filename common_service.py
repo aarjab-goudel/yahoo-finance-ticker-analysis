@@ -477,6 +477,24 @@ def stripAlphabetFromNum(val):
     allowed_chars = set("0123456789-.,")
     return ''.join(ch for ch in val if ch in allowed_chars)
 
+def scale_down_by_thousand(values: list[float]) -> list[str]:
+    """
+    Divide each float in `values` by 1 000 and return the resulting list
+    of strings with comma separators. Drops “.0” for whole numbers,
+    otherwise shows two decimal places.
+    """
+    formatted = []
+    for x in values:
+        thousands = x / 1_000
+        if thousands.is_integer():
+            # e.g. 391035.0 → "391,035"
+            formatted.append(f"{int(thousands):,}")
+        else:
+            # e.g. 391035.75 → "391,035.75"
+            formatted.append(f"{thousands:,.2f}")
+    return formatted
+
+
 
 
 
